@@ -65,27 +65,20 @@ class BaseDocument(ABC):
     def __str__(self):
         pass
 
-    @staticmethod
+    @property
     @abstractmethod
+    def create_date(self):
+        pass
+
+    @property
+    @abstractmethod
+    def update_date(self):
+        pass
+
+    @staticmethod
     def fromStr(string_value, clone=None):
         pass
 
+    @abstractmethod
     def toDict(self):
-        o = self.get_document()
-        if issubclass(type(o), BaseDocument):
-            doc = {"__type": "BaseDocument", "__object": o.toDict()}
-        elif type(o) in BUILT_INS:
-            doc = o
-        else:
-            try:
-                doc = loads(dumps(self.get_document()))
-            except:
-                doc = o
-
-        return {
-            "core_id": self.core_id,
-            "name": self._name,
-            "key": str(self.key) if self.key is not None else None,
-            "encoding": self.encoding,
-            "document": doc
-        }
+        pass

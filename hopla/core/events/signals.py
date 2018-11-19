@@ -2,8 +2,7 @@ from enum import Enum
 
 
 class Signals(Enum):
-    DOCUMENT_CREATED = "DOCUMENT_CREATED"
-    DOCUMENT_VALIDATED = "DOCUMENT_VALIDATED"
-    DOCUMENT_CLONED = "DOCUMENT_CLONED"
-    EXCEPTION_RAISED = "EXCEPTION_RAISED"
-    WARNING_RAISED = "WARNING_RAISED"
+    DOCUMENT_CREATED = "document created"
+    DOCUMENT_VALIDATED = "document validated"
+    DOCUMENT_CLONED = "document cloned"
+    DOCUMENT_UPDATED = "document updated"

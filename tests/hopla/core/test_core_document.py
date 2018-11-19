@@ -172,3 +172,17 @@ def test_event_document_cloned():
     connect_handler(handle_cloning, signal=Signals.DOCUMENT_CLONED, sender=dispatcher.Any)
     d = Document(TEST_DOCUMENT)
     d.clone()
+
+
+def handle_update(message):
+    assert message["type"] == Signals.DOCUMENT_UPDATED
+    assert type(message["document"]) == Document
+    assert message["document"].get_document() == TEST_DOCUMENT * 2
+    assert message["changes"]["from"] == TEST_DOCUMENT
+    assert message["changes"]["to"] == TEST_DOCUMENT * 2
+
+
+def test_event_document_updated():
+    connect_handler(handle_update, signal=Signals.DOCUMENT_UPDATED, sender=dispatcher.Any)
+    d = Document(TEST_DOCUMENT)
+    d.set_document(TEST_DOCUMENT * 2)

@@ -14,6 +14,7 @@ from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
 from hopla.core.events.signals import Signals
 from hopla.core.events import core_dispatcher
+from datetime import datetime
 
 
 class Document(BaseDocument):
@@ -51,8 +52,17 @@ class Document(BaseDocument):
     def get_document(self):
         return self._inner_value
 
+    @property
+    def create_date(self):
+        return self._create_date
+
+    @property
+    def update_date(self):
+        return self._update_date
+
     @log_exception(logger)
     def set_document(self, document):
+        cached_value = None if self._new else self._inner_value
         if type(document) == str or type(document) == bytes:
             try:
                 if type(document) == bytes:
@@ -83,6 +93,20 @@ class Document(BaseDocument):
         except RecursionError:
             warnings.warn(CircularReferenceWarning("Circular reference detected."))
 
+        if not self._new:
+            self._update_date = datetime.utcnow()
+
+            core_dispatcher.send_message(
+                message={
+                    "type": Signals.DOCUMENT_UPDATED,
+                    "document": self,
+                    "changes": {
+                        "from": cached_value,
+                        "to": self._inner_value
+                    }},
+                signal=Signals.DOCUMENT_UPDATED,
+                sender=object())
+
     def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, document=None, options=None):
         """
 
@@ -100,6 +124,9 @@ class Document(BaseDocument):
         self._name = name
         self._inner_value = None
         self._options = options
+        self._new = True
+        self._create_date = datetime.utcnow()
+        self._update_date = self._create_date
 
         if document is None:
             if len(args) == 1:
@@ -117,6 +144,7 @@ class Document(BaseDocument):
                 "document": self},
             signal=Signals.DOCUMENT_CREATED,
             sender=object())
+        self._new = False
 
     def clone(self):
         cloned = Document.fromStr(str(self), new=True)
@@ -127,16 +155,41 @@ class Document(BaseDocument):
     def __str__(self):
         return dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
 
+    def toDict(self):
+        o = self.get_document()
+        if issubclass(type(o), BaseDocument):
+            doc = {"__type": "BaseDocument", "__object": o.toDict()}
+        elif type(o) in BUILT_INS:
+            doc = o
+        else:
+            try:
+                doc = loads(dumps(self.get_document()))
+            except:
+                doc = o
+
+        return {
+            "core_id": self.core_id,
+            "name": self._name,
+            "key": str(self.key) if self.key is not None else None,
+            "encoding": self.encoding,
+            "create_date": self.create_date,
+            "update_date": self.update_date,
+            "document": doc,
+        }
+
     @staticmethod
     def fromStr(string_value, new=None):
         o = loads(string_value)
-        if type(o) == dict and {"core_id", "encoding", "key", "name", "document"} == set(o.keys()):
+        if type(o) == dict and {"core_id", "encoding", "key", "name", "create_date", "update_date", "document"} == set(o.keys()):
             if type(o["document"]) == dict and {"__object", "__type"} == set(o["document"].keys()) and o["document"][
                 "__type"] == "BaseDocument":
                 sub_o = Document.fromStr(dumps(o["document"]["__object"]))
                 o["document"] = sub_o
-            return Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()),
+            doc = Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()),
                             encoding=o["encoding"], key=o["key"], name=o["name"])
+            doc._create_date = o["create_date"]
+            doc._update_date = o["update_date"]
+            return doc
         if type(o) == list:
             return [Document.fromStr(sub_o) for sub_o in o]
         return o
