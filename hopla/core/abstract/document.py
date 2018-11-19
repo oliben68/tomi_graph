@@ -57,13 +57,17 @@ class BaseDocument(ABC):
     def validate(self, document):
         pass
 
+    @staticmethod
+    def clone(self):
+        pass
+
     @abstractmethod
     def __str__(self):
         pass
 
     @staticmethod
     @abstractmethod
-    def fromStr(string_value):
+    def fromStr(string_value, clone=None):
         pass
 
     def toDict(self):

@@ -118,18 +118,23 @@ class Document(BaseDocument):
             signal=Signals.DOCUMENT_CREATED,
             sender=object())
 
+    def clone(self):
+        return Document.fromStr(str(self), new=True)
+
     def __str__(self):
         return dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
 
     @staticmethod
-    def fromStr(string_value):
+    def fromStr(string_value, new=None):
         o = loads(string_value)
         if type(o) == dict and {"core_id", "encoding", "key", "name", "document"} == set(o.keys()):
             if type(o["document"]) == dict and {"__object", "__type"} == set(o["document"].keys()) and o["document"][
                 "__type"] == "BaseDocument":
                 sub_o = Document.fromStr(dumps(o["document"]["__object"]))
                 o["document"] = sub_o
-            return Document(o["document"], core_id=o["core_id"], encoding=o["encoding"], key=o["key"], name=o["name"])
+            return Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()), encoding=o["encoding"], key=o["key"], name=o["name"])
         if type(o) == list:
             return [Document.fromStr(sub_o) for sub_o in o]
         return o
+
+    __repr__ = __str__
