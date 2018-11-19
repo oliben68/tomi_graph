@@ -6,7 +6,7 @@ from hopla.core.document import Document
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
 from hopla.core.events.signals import Signals
-from pydispatch import dispatcher
+from hopla.core.events import core_dispatcher
 
 
 class ValidatedDocument(Document):
@@ -51,7 +51,7 @@ class ValidatedDocument(Document):
             "schema"].keys():
             validation = self.validate(document)
             if validation["valid"]:
-                dispatcher.send(message={
+                core_dispatcher.send_message(message={
                     "type": Signals.DOCUMENT_VALIDATED,
                     "document": self,
                     "validator": validation["info"]},

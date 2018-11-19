@@ -13,7 +13,7 @@ from hopla.core.exceptions import CoreDocumentException, EncodingWarning, Circul
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
 from hopla.core.events.signals import Signals
-from pydispatch import dispatcher
+from hopla.core.events import core_dispatcher
 
 
 class Document(BaseDocument):
@@ -111,7 +111,7 @@ class Document(BaseDocument):
         else:
             self.set_document(document)
 
-        dispatcher.send(
+        core_dispatcher.send_message(
             message={
                 "type": Signals.DOCUMENT_CREATED,
                 "document": self},
@@ -119,7 +119,10 @@ class Document(BaseDocument):
             sender=object())
 
     def clone(self):
-        return Document.fromStr(str(self), new=True)
+        cloned = Document.fromStr(str(self), new=True)
+        core_dispatcher.send_message(dict(type=Signals.DOCUMENT_CLONED, document=cloned, source=self),
+                                     Signals.DOCUMENT_CLONED)
+        return cloned
 
     def __str__(self):
         return dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
@@ -132,7 +135,8 @@ class Document(BaseDocument):
                 "__type"] == "BaseDocument":
                 sub_o = Document.fromStr(dumps(o["document"]["__object"]))
                 o["document"] = sub_o
-            return Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()), encoding=o["encoding"], key=o["key"], name=o["name"])
+            return Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()),
+                            encoding=o["encoding"], key=o["key"], name=o["name"])
         if type(o) == list:
             return [Document.fromStr(sub_o) for sub_o in o]
         return o

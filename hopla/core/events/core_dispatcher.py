@@ -5,7 +5,7 @@ from hopla.core.events.exceptions import HandlerArgsCountException
 from hopla.core.events.signals import Signals
 
 
-def connect(handler, signal, sender=None):
+def connect_handler(handler, signal, sender=None):
     if not callable(handler):
         raise TypeError("Handler should be callable.")
     if len(inspect.getfullargspec(handler).args) == 0:
@@ -15,3 +15,7 @@ def connect(handler, signal, sender=None):
         raise TypeError("The signal should be of type {signal}.".format(signal=Signals.__name__))
 
     dispatcher.connect(handler, signal=signal, sender=sender if sender is not None else dispatcher.Any)
+
+
+def send_message(message, signal, sender=None):
+    dispatcher.send(message=message, signal=signal, sender=sender if sender is not None else object())

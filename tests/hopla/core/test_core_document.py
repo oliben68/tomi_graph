@@ -7,7 +7,7 @@ from pydispatch import dispatcher
 
 from hopla.core import DEFAULT_ENCODING
 from hopla.core.document import Document
-from hopla.core.events.listener import connect
+from hopla.core.events.core_dispatcher import connect_handler
 from hopla.core.events.signals import Signals
 from hopla.core.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
     SchemaValidationWarning, SchemaValidationException
@@ -155,6 +155,20 @@ def handle_creation(message):
     assert message["document"].get_document() == TEST_DOCUMENT
 
 
-def test_event_document_created2():
-    connect(handle_creation, signal=Signals.DOCUMENT_CREATED, sender=dispatcher.Any)
+def test_event_document_created():
+    connect_handler(handle_creation, signal=Signals.DOCUMENT_CREATED, sender=dispatcher.Any)
     _ = Document(TEST_DOCUMENT)
+
+
+def handle_cloning(message):
+    assert message["type"] == Signals.DOCUMENT_CLONED
+    assert type(message["document"]) == Document
+    assert message["document"].get_document() == TEST_DOCUMENT
+    assert message["source"].get_document() == TEST_DOCUMENT
+    assert message["document"].core_id != message["source"].core_id
+
+
+def test_event_document_cloned():
+    connect_handler(handle_cloning, signal=Signals.DOCUMENT_CLONED, sender=dispatcher.Any)
+    d = Document(TEST_DOCUMENT)
+    d.clone()
