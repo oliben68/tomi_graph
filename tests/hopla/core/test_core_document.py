@@ -1,17 +1,17 @@
 import warnings
-from ujson import dumps, loads
+from ujson import dumps
 from uuid import uuid4
 
 import pytest
 from pydispatch import dispatcher
 
 from hopla.core import DEFAULT_ENCODING
-from hopla.core.document import Document
+from hopla.documents.document import Document
 from hopla.core.events.core_dispatcher import connect_handler
 from hopla.core.events.signals import Signals
 from hopla.core.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
     SchemaValidationWarning, SchemaValidationException
-from hopla.core.validated.document import ValidatedDocument
+from hopla.documents.schema_based.document import ValidatedDocument
 
 TEST_VAL = {"document": {"test": "value"}}
 TEST_DOCUMENT = "THIS IS A TEST"
@@ -149,40 +149,68 @@ def test_schema_validated_document_warning(recwarn):
     assert recwarn.pop(SchemaValidationWarning)
 
 
-def handle_creation(message):
-    assert message["type"] == Signals.DOCUMENT_CREATED
-    assert type(message["document"]) == Document
-    assert message["document"].get_document() == TEST_DOCUMENT
-
-
 def test_event_document_created():
+    def handle_creation(message):
+        assert message["type"] == Signals.DOCUMENT_CREATED
+        assert type(message["document"]) == Document
+        assert message["document"].get_document() == TEST_DOCUMENT
+
     connect_handler(handle_creation, signal=Signals.DOCUMENT_CREATED, sender=dispatcher.Any)
     _ = Document(TEST_DOCUMENT)
 
 
-def handle_cloning(message):
-    assert message["type"] == Signals.DOCUMENT_CLONED
-    assert type(message["document"]) == Document
-    assert message["document"].get_document() == TEST_DOCUMENT
-    assert message["source"].get_document() == TEST_DOCUMENT
-    assert message["document"].core_id != message["source"].core_id
+def test_event_document_new_cloned():
+    def handle_cloning(message):
+        assert message["type"] == Signals.DOCUMENT_CLONED
+        assert type(message["document"]) == Document
+        assert message["document"].get_document() == TEST_DOCUMENT
+        assert message["source"].get_document() == TEST_DOCUMENT
+        assert message["document"].core_id != message["source"].core_id
 
-
-def test_event_document_cloned():
     connect_handler(handle_cloning, signal=Signals.DOCUMENT_CLONED, sender=dispatcher.Any)
     d = Document(TEST_DOCUMENT)
     d.clone()
 
 
-def handle_update(message):
-    assert message["type"] == Signals.DOCUMENT_UPDATED
-    assert type(message["document"]) == Document
-    assert message["document"].get_document() == TEST_DOCUMENT * 2
-    assert message["changes"]["from"] == TEST_DOCUMENT
-    assert message["changes"]["to"] == TEST_DOCUMENT * 2
+def test_event_document_cloned():
+    def handle_cloning(message):
+        assert message["type"] == Signals.DOCUMENT_CLONED
+        assert type(message["document"]) == Document
+        assert message["document"].get_document() == TEST_DOCUMENT
+        assert message["source"].get_document() == TEST_DOCUMENT
+        assert message["document"].core_id == message["source"].core_id
+
+    connect_handler(handle_cloning, signal=Signals.DOCUMENT_CLONED, sender=dispatcher.Any)
+    d = Document(TEST_DOCUMENT)
+    d.clone(new=False)
 
 
 def test_event_document_updated():
+    def handle_update(message):
+        assert message["type"] == Signals.DOCUMENT_UPDATED
+        assert type(message["document"]) == Document
+        assert message["document"].get_document() == TEST_DOCUMENT * 2
+        assert message["changes"]["from"] == TEST_DOCUMENT
+        assert message["changes"]["to"] == TEST_DOCUMENT * 2
+
     connect_handler(handle_update, signal=Signals.DOCUMENT_UPDATED, sender=dispatcher.Any)
     d = Document(TEST_DOCUMENT)
     d.set_document(TEST_DOCUMENT * 2)
+
+
+def test_from_str():
+    d = Document(TEST_DOCUMENT)
+    dd = Document.from_str(str(d))
+    assert str(dd) == str(d)
+
+
+def test_new_from_str():
+    d = Document(TEST_DOCUMENT)
+    dd = Document.from_str(str(d), new=True)
+    assert str(dd) != str(d)
+
+
+def test_equal():
+    d = Document(TEST_DOCUMENT)
+    dd = d.clone(new=False)
+    assert d == dd

@@ -2,7 +2,7 @@ from jsonschema import validate, ValidationError
 
 import warnings
 from hopla.core.exceptions import SchemaValidationException, SchemaValidationWarning
-from hopla.core.document import Document
+from hopla.documents.document import Document
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
 from hopla.core.events.signals import Signals
