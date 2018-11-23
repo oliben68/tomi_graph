@@ -214,3 +214,11 @@ def test_equal():
     d = Document(TEST_DOCUMENT)
     dd = d.clone(new=False)
     assert d == dd
+
+
+def test_hash():
+    d = Document("A")
+    dd = d.clone(new=False)
+    assert dd == d
+    assert hash(d) == hash(dd)
+    assert hash(d) != hash(Document("A"))
