@@ -111,11 +111,11 @@ def test_schema_validated_document_exception():
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
-                "name": {"type": "string"},
+                "__name": {"type": "string"},
             }
         }}}
     with pytest.raises(Exception) as e_info:
-        ValidatedDocument({"name": "Lord of the ring", "price": "34.99"}, options=options)
+        ValidatedDocument({"__name": "Lord of the ring", "price": "34.99"}, options=options)
         assert type(e_info) == SchemaValidationException
 
     options = {"schema": {
@@ -123,13 +123,13 @@ def test_schema_validated_document_exception():
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
-                "name": {"type": "string"},
+                "__name": {"type": "string"},
             }
         },
         "as_warning": False}}
 
     with pytest.raises(Exception) as e_info:
-        ValidatedDocument({"name": "Lord of the ring", "price": "34.99"}, options=options)
+        ValidatedDocument({"__name": "Lord of the ring", "price": "34.99"}, options=options)
         assert type(e_info) == SchemaValidationException
 
 
@@ -139,12 +139,12 @@ def test_schema_validated_document_warning(recwarn):
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
-                "name": {"type": "string"},
+                "__name": {"type": "string"},
             }
         },
         "as_warning": True}}
     warnings.simplefilter("always")
-    ValidatedDocument({"name": "Lord of the ring", "price": "34.99"}, options=options)
+    ValidatedDocument({"__name": "Lord of the ring", "price": "34.99"}, options=options)
     assert len(recwarn) == 1
     assert recwarn.pop(SchemaValidationWarning)
 

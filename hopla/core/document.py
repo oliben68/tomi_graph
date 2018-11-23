@@ -168,27 +168,27 @@ class Document(BaseDocument):
                 doc = o
 
         return {
-            "core_id": self.core_id,
-            "name": self._name,
-            "key": str(self.key) if self.key is not None else None,
-            "encoding": self.encoding,
-            "create_date": self.create_date,
-            "update_date": self.update_date,
-            "document": doc,
+            "__id": self.core_id,
+            "__name": self._name,
+            "__key": str(self.key) if self.key is not None else None,
+            "__encoding": self.encoding,
+            "__create_date": self.create_date,
+            "__update_date": self.update_date,
+            "__document": doc,
         }
 
     @staticmethod
     def fromStr(string_value, new=None):
         o = loads(string_value)
-        if type(o) == dict and {"core_id", "encoding", "key", "name", "create_date", "update_date", "document"} == set(o.keys()):
-            if type(o["document"]) == dict and {"__object", "__type"} == set(o["document"].keys()) and o["document"][
+        if type(o) == dict and {"__id", "__encoding", "__key", "__name", "__create_date", "__update_date", "__document"} == set(o.keys()):
+            if type(o["__document"]) == dict and {"__object", "__type"} == set(o["__document"].keys()) and o["__document"][
                 "__type"] == "BaseDocument":
-                sub_o = Document.fromStr(dumps(o["document"]["__object"]))
-                o["document"] = sub_o
-            doc = Document(o["document"], core_id=o["core_id"] if new is None or not new else str(uuid.uuid4()),
-                            encoding=o["encoding"], key=o["key"], name=o["name"])
-            doc._create_date = o["create_date"]
-            doc._update_date = o["update_date"]
+                sub_o = Document.fromStr(dumps(o["__document"]["__object"]))
+                o["__document"] = sub_o
+            doc = Document(o["__document"], core_id=o["__id"] if new is None or not new else str(uuid.uuid4()),
+                            encoding=o["__encoding"], key=o["__key"], name=o["__name"])
+            doc._create_date = o["__create_date"]
+            doc._update_date = o["__update_date"]
             return doc
         if type(o) == list:
             return [Document.fromStr(sub_o) for sub_o in o]
