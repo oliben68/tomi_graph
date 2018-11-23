@@ -66,6 +66,10 @@ class BaseDocument(ABC):
     def __eq__(self, other):
         pass
 
+    @abstractmethod
+    def __hash__(self):
+        pass
+
     @property
     @abstractmethod
     def create_date(self):

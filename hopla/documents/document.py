@@ -160,6 +160,9 @@ class Document(BaseDocument):
     def __eq__(self, other):
         return str(self) == str(other)
 
+    def __hash__(self):
+        return hash(str(self))
+
     def toDict(self):
         o = self.get_document()
         if issubclass(type(o), BaseDocument):
@@ -167,9 +170,10 @@ class Document(BaseDocument):
         elif type(o) in BUILT_INS:
             doc = o
         else:
+            # noinspection PyBroadException
             try:
                 doc = loads(dumps(self.get_document()))
-            except:
+            except Exception:
                 doc = o
 
         return {
