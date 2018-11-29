@@ -1,12 +1,12 @@
 from jsonschema import validate, ValidationError
 
 import warnings
-from hopla.core.exceptions import SchemaValidationException, SchemaValidationWarning
+from hopla.documents.exceptions import SchemaValidationException, SchemaValidationWarning
 from hopla.documents.document import Document
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
-from hopla.core.events.signals import Signals
-from hopla.core.events import core_dispatcher
+from hopla.events.signals import Signals
+from hopla.events import dispatcher
 
 
 class ValidatedDocument(Document):
@@ -51,7 +51,7 @@ class ValidatedDocument(Document):
             "schema"].keys():
             validation = self.validate(document)
             if validation["valid"]:
-                core_dispatcher.send_message(message={
+                dispatcher.send_message(message={
                     "type": Signals.DOCUMENT_VALIDATED,
                     "document": self,
                     "validator": validation["info"]},

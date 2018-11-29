@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from pydispatch import dispatcher
 
-from hopla.core import DEFAULT_ENCODING
+from hopla.documents.core import DEFAULT_ENCODING
 from hopla.documents.document import Document
-from hopla.core.events.core_dispatcher import connect_handler
-from hopla.core.events.signals import Signals
-from hopla.core.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
+from hopla.events.dispatcher import connect_handler
+from hopla.events.signals import Signals
+from hopla.documents.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
     SchemaValidationWarning, SchemaValidationException
 from hopla.documents.schema_based.document import ValidatedDocument
 

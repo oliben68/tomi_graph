@@ -6,14 +6,14 @@ from ujson import loads, load, dumps
 import chardet
 from py._path.local import LocalPath
 
-from hopla.core import DEFAULT_ENCODING
-from hopla.core import BUILT_INS
-from hopla.core.document import BaseDocument
-from hopla.core.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.documents.core import DEFAULT_ENCODING
+from hopla.documents.core import BUILT_INS
+from hopla.documents.core.document import BaseDocument
+from hopla.documents.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
-from hopla.core.events.signals import Signals
-from hopla.core.events import core_dispatcher
+from hopla.events.signals import Signals
+from hopla.events import dispatcher
 from datetime import datetime
 
 
@@ -96,7 +96,7 @@ class Document(BaseDocument):
         if not self._new:
             self._update_date = datetime.utcnow()
 
-            core_dispatcher.send_message(
+            dispatcher.send_message(
                 message={
                     "type": Signals.DOCUMENT_UPDATED,
                     "document": self,
@@ -138,7 +138,7 @@ class Document(BaseDocument):
         else:
             self.set_document(document)
 
-        core_dispatcher.send_message(
+        dispatcher.send_message(
             message={
                 "type": Signals.DOCUMENT_CREATED,
                 "document": self},
@@ -150,8 +150,8 @@ class Document(BaseDocument):
         cloned = Document.from_str(str(self), new=True)
         if type(new) == bool or False:
             cloned._core_id = self.core_id
-        core_dispatcher.send_message(dict(type=Signals.DOCUMENT_CLONED, document=cloned, source=self),
-                                     Signals.DOCUMENT_CLONED)
+        dispatcher.send_message(dict(type=Signals.DOCUMENT_CLONED, document=cloned, source=self),
+                                Signals.DOCUMENT_CLONED)
         return cloned
 
     def __str__(self):
@@ -165,10 +165,19 @@ class Document(BaseDocument):
 
     def toDict(self):
         o = self.get_document()
+        b_name = BaseDocument.__name__
         if issubclass(type(o), BaseDocument):
-            doc = {"__type": "BaseDocument", "__object": o.toDict()}
-        elif type(o) in BUILT_INS:
-            doc = o
+            doc = {"__type": b_name, "__object": o.toDict()}
+        elif type(o) in BUILT_INS or any([issubclass(type(o), i) for i in BUILT_INS]):
+            if issubclass(type(o), list) or type(o) == list:
+                doc = [
+                    (i if not issubclass(type(i), BaseDocument) else {"__type": b_name, "__object": i.toDict()})
+                    for i in o]
+            elif issubclass(type(o), dict) or type(o) == dict:
+                doc = {k: (v if not issubclass(type(v), BaseDocument) else {"__type": b_name, "__object": v.toDict()})
+                for k, v in o.items()}
+            else:
+                doc = o
         else:
             # noinspection PyBroadException
             try:
@@ -189,11 +198,11 @@ class Document(BaseDocument):
     @staticmethod
     def from_str(string_value, new=None):
         o = loads(string_value)
-        if type(o) == dict and {"__id", "__encoding", "__key", "__name", "__create_date", "__update_date",
+        if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
                                 "__document"} == set(o.keys()):
             if type(o["__document"]) == dict and {"__object", "__type"} == set(o["__document"].keys()) and \
                     o["__document"][
-                        "__type"] == "BaseDocument":
+                        "__type"] == BaseDocument.__name__:
                 sub_o = Document.from_str(dumps(o["__document"]["__object"]), new=new)
                 o["__document"] = sub_o
             doc = Document(o["__document"], core_id=o["__id"] if new is None or not new else str(uuid.uuid4()),

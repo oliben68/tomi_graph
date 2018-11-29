@@ -2,7 +2,7 @@ def log_exception(logger, exception_type=None):
     """
     A decorator that wraps a function and logs exceptions should one occur
     :param logger: logger to which log the exception
-    :param exception_type: if not none, only logging when this exception is raised
+    :param exception_type: only logs exceptions when this type of exception is raised; None all are logged
     :return:
     """
     def decorator(func):
