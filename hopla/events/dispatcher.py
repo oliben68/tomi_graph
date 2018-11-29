@@ -1,8 +1,8 @@
 from pydispatch import dispatcher
 import inspect
 
-from hopla.core.events.exceptions import HandlerArgsCountException
-from hopla.core.events.signals import Signals
+from hopla.events.exceptions import HandlerArgsCountException
+from hopla.events.signals import Signals
 
 
 def connect_handler(handler, signal, sender=None):
