@@ -214,4 +214,5 @@ class Document(BaseDocument):
             return [Document.from_str(sub_o, new=new) for sub_o in o]
         return o
 
-    __repr__ = __str__
+    def __repr__(self):
+        return "<class '{klass}' - value {value}>".format(klass=type(self).__name__, value=dumps(self.toDict()))

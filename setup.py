@@ -11,7 +11,8 @@ setup(
               'hopla.logging',
               'hopla.model',
               'hopla.model.config',
-              'hopla.model.core', ],
+              'hopla.model.core',
+              'hopla.search', ],
     url='',
     license='',
     author='Olivier Steck',
@@ -21,5 +22,5 @@ setup(
                       'chardet',
                       'jsonschema',
                       'neo4j',
-                      'ujson', ]
+                      'ujson', 'objectpath']
 )
