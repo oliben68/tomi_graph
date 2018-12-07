@@ -5,84 +5,95 @@ class BaseDocument(ABC):
     @property
     @abstractmethod
     def core_id(self):
-        pass
+        raise NotImplementedError
 
     @core_id.setter
     @abstractmethod
     def core_id(self, value):
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def key(self):
-        pass
+        raise NotImplementedError
 
     @key.setter
     @abstractmethod
     def key(self, value):
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def encoding(self):
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def name(self):
-        pass
+        raise NotImplementedError
 
     @name.setter
     @abstractmethod
     def name(self, value):
-        pass
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def ttl(self):
+        raise NotImplementedError
+
+    @ttl.setter
+    @abstractmethod
+    def ttl(self, value):
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def options(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def set_document(self, value):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_document(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def validate(self, document):
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def clone(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __str__(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __eq__(self, other):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def __hash__(self):
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def create_date(self):
-        pass
+        raise NotImplementedError
 
     @property
     @abstractmethod
     def update_date(self):
-        pass
+        raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def from_str(string_value, clone=None):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def toDict(self):
@@ -90,4 +101,8 @@ class BaseDocument(ABC):
         Support for custom serialization with ujson
         :return:
         """
-        pass
+        raise NotImplementedError
+
+    @abstractmethod
+    def children(self):
+        raise NotImplementedError

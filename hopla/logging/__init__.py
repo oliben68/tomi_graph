@@ -19,7 +19,7 @@ def create_logger(*handlers, capture_warnings=None):
     """
     Creates a logging object and returns it
     """
-    logger = logging.getLogger("hopla")
+    logger = logging.getLogger(__name__.split('.')[0])
     logger.setLevel(logging.INFO)
 
     if len(handlers) == 0:

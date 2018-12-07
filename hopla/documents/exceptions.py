@@ -20,3 +20,7 @@ class EncodingWarning(Warning):
 
 class SchemaValidationWarning(Warning):
     pass
+
+
+class SchemaDataException(Exception):
+    pass

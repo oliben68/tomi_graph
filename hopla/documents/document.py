@@ -2,8 +2,10 @@ import uuid
 import warnings
 from io import TextIOBase
 from ujson import loads, load, dumps
+from decimal import Decimal, InvalidOperation
 
 import chardet
+from objectpath import Tree
 from py._path.local import LocalPath
 
 from hopla.documents.core import DEFAULT_ENCODING
@@ -43,6 +45,18 @@ class Document(BaseDocument):
             raise CoreDocumentException("name property is of type str!")
 
     @property
+    def ttl(self):
+        return self._ttl
+
+    @ttl.setter
+    @log_exception(logger)
+    def ttl(self, value):
+        try:
+            self._ttl = Decimal(value)
+        except InvalidOperation:
+            raise CoreDocumentException("ttl property should be a number!")
+
+    @property
     def options(self):
         return self._options
 
@@ -64,20 +78,17 @@ class Document(BaseDocument):
     def set_document(self, document):
         cached_value = None if self._new else self._inner_value
         if type(document) == str or type(document) == bytes:
-            try:
-                if type(document) == bytes:
-                    encoding = chardet.detect(document)["encoding"]
-                    if chardet.detect(document)["encoding"].lower() != self._encoding.lower():
-                        warnings.warn(
-                            EncodingWarning("Detected encoding {d} is different from document encoding {e}.".format(
-                                d=encoding, e=self._encoding)))
-                        self._encoding = encoding.lower()
-                        document = document.decode(encoding)
-                    else:
-                        document = document.decode(self._encoding)
-                self._inner_value = document
-            except Exception as ex:
-                raise CoreDocumentException(ex)
+            if type(document) == bytes:
+                encoding = chardet.detect(document)["encoding"]
+                if chardet.detect(document)["encoding"].lower() != self._encoding.lower():
+                    warnings.warn(
+                        EncodingWarning("Detected encoding {d} is different from document encoding {e}.".format(
+                            d=encoding, e=self._encoding)))
+                    self._encoding = encoding.lower()
+                    document = document.decode(encoding)
+                else:
+                    document = document.decode(self._encoding)
+            self._inner_value = document
         elif type(document) in BUILT_INS:
             self._inner_value = document
         elif type(document) == TextIOBase or type(document) == LocalPath:
@@ -107,7 +118,7 @@ class Document(BaseDocument):
                 signal=Signals.DOCUMENT_UPDATED,
                 sender=object())
 
-    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, document=None, options=None):
+    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, document=None, ttl=-1, options=None):
         """
 
         :param args:
@@ -123,9 +134,10 @@ class Document(BaseDocument):
         self._key = key
         self._name = name
         self._inner_value = None
+        self._ttl = ttl
         self._options = options
         self._new = True
-        self._create_date = datetime.utcnow()
+        self._create_date = datetime.utcnow().timestamp()
         self._update_date = self._create_date
 
         if document is None:
@@ -146,14 +158,6 @@ class Document(BaseDocument):
             sender=object())
         self._new = False
 
-    def clone(self, new=None):
-        cloned = Document.from_str(str(self), new=True)
-        if type(new) == bool or False:
-            cloned._core_id = self.core_id
-        dispatcher.send_message(dict(type=Signals.DOCUMENT_CLONED, document=cloned, source=self),
-                                Signals.DOCUMENT_CLONED)
-        return cloned
-
     def __str__(self):
         return dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
 
@@ -163,56 +167,96 @@ class Document(BaseDocument):
     def __hash__(self):
         return hash(str(self))
 
-    def toDict(self):
-        o = self.get_document()
+    @staticmethod
+    def _to_dict(o):
         b_name = BaseDocument.__name__
-        if issubclass(type(o), BaseDocument):
-            doc = {"__type": b_name, "__object": o.toDict()}
-        elif type(o) in BUILT_INS or any([issubclass(type(o), i) for i in BUILT_INS]):
-            if issubclass(type(o), list) or type(o) == list:
-                doc = [
-                    (i if not issubclass(type(i), BaseDocument) else {"__type": b_name, "__object": i.toDict()})
-                    for i in o]
-            elif issubclass(type(o), dict) or type(o) == dict:
-                doc = {k: (v if not issubclass(type(v), BaseDocument) else {"__type": b_name, "__object": v.toDict()})
-                for k, v in o.items()}
-            else:
-                doc = o
-        else:
-            # noinspection PyBroadException
-            try:
-                doc = loads(dumps(self.get_document()))
-            except Exception:
-                doc = o
 
-        return {
-            "__id": self.core_id,
-            "__name": self._name,
-            "__key": str(self.key) if self.key is not None else None,
-            "__encoding": self.encoding,
-            "__create_date": self.create_date,
-            "__update_date": self.update_date,
-            "__document": doc,
-        }
+        def dict_format(d):
+            return {
+                "__type": b_name,
+                "__object": {
+                    "__id": d.core_id,
+                    "__name": d.name,
+                    "__key": str(d.key) if d.key is not None else None,
+                    "__encoding": d.encoding,
+                    "__create_date": d.create_date,
+                    "__update_date": d.update_date,
+                    "__ttl": d.ttl,
+                    "__document": Document._to_dict(d.get_document()),
+                }
+            }
+
+        if type(o) == str:
+            return o
+        try:
+            _ = iter(o)
+            if issubclass(type(o), dict) or type(o) == dict:
+                for k, v in o.items():
+                    if issubclass(type(v), BaseDocument):
+                        o[k] = dict_format(v)
+                    else:
+                        o[k] = Document._to_dict(v)
+            elif issubclass(type(o), list) or type(o) == list:
+                for idx, v in enumerate(o):
+                    if issubclass(type(v), BaseDocument):
+                        o[idx] = dict_format(v)
+                    else:
+                        o[idx] = Document._to_dict(v)
+            return o
+        except TypeError:
+            if issubclass(type(o), BaseDocument):
+                return dict_format(o)
+            else:
+                return o
+
+    def toDict(self):
+        return Document._to_dict(self)
+
+    def clone(self, new=None):
+        cloned = Document.from_str(dumps(self.toDict()), new=new)
+        dispatcher.send_message(dict(type=Signals.DOCUMENT_CLONED, document=cloned, source=self),
+                                Signals.DOCUMENT_CLONED)
+        return cloned
+
+    def children(self):
+        tree = Tree(loads(str(self)))
+        return [Document.from_str(dumps(d["__object"])) for d in
+                list(tree.execute('$..*[@.__type is "BaseDocument" and @.__object]')) if
+                d["__object"]["__id"] != self.core_id]
 
     @staticmethod
     def from_str(string_value, new=None):
+        new_instance = new if type(new) == bool else False
+        b_name = BaseDocument.__name__
         o = loads(string_value)
+
         if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
-                                "__document"} == set(o.keys()):
+                                "__document", "__ttl"} == set(o.keys()):
             if type(o["__document"]) == dict and {"__object", "__type"} == set(o["__document"].keys()) and \
                     o["__document"][
-                        "__type"] == BaseDocument.__name__:
-                sub_o = Document.from_str(dumps(o["__document"]["__object"]), new=new)
+                        "__type"] == b_name:
+                sub_o = Document.from_str(dumps(o["__document"]["__object"]), new=new_instance)
                 o["__document"] = sub_o
-            doc = Document(o["__document"], core_id=o["__id"] if new is None or not new else str(uuid.uuid4()),
+            core_id = str(uuid.uuid4()) if new_instance else o["__id"]
+            doc = Document(o["__document"], core_id=core_id,
                            encoding=o["__encoding"], key=o["__key"], name=o["__name"])
-            doc._create_date = o["__create_date"]
-            doc._update_date = o["__update_date"]
+            doc._create_date = datetime.utcnow().timestamp() if new_instance else o["__create_date"]
+            doc._update_date = doc._create_date if new_instance else o["__update_date"]
+            doc._ttl = -1 if new_instance else o["__ttl"]
             return doc
+
+        if type(o) == dict and {"__type", "__object"} == set(o.keys()) and o["__type"] == b_name:
+            return Document.from_str(dumps(o["__object"]), new=new_instance)
+
+        if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
+                                "__document", "__ttl"} != set(o.keys()):
+            return {k: Document.from_str(dumps(v), new=new_instance) for k, v in o.items()}
+
         if type(o) == list:
-            return [Document.from_str(sub_o, new=new) for sub_o in o]
+            return [Document.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
+
         return o
 
     def __repr__(self):
         return "<class '{klass}' - value {value}>".format(klass=type(self).__name__, value=dumps(self.toDict()))
+

@@ -10,7 +10,7 @@ from hopla.events import dispatcher
 
 
 class ValidatedDocument(Document):
-    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, document=None, options=None):
+    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, document=None, ttl=-1, options=None):
         """
 
         :param args:
@@ -27,7 +27,7 @@ class ValidatedDocument(Document):
                 }
             }
         """
-        super().__init__(*args, core_id=core_id, encoding=encoding, key=key, name=name, document=document,
+        super().__init__(*args, core_id=core_id, encoding=encoding, key=key, name=name, document=document, ttl=ttl,
                          options=options)
 
     @log_exception(logger)

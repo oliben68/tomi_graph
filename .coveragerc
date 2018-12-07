@@ -1,0 +1,14 @@
+[run]
+omit =
+    # omit everything in tests
+    tests/*
+    hopla/model/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+
+    # ignoring AbstractNotImplementedError
+    raise NotImplementedError
+
+ignore_errors = True
