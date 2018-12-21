@@ -1,22 +1,22 @@
 import uuid
 import warnings
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from io import TextIOBase
 from ujson import loads, load, dumps
-from decimal import Decimal, InvalidOperation
 
 import chardet
 from objectpath import Tree
 from py._path.local import LocalPath
 
-from hopla.documents.core import DEFAULT_ENCODING
 from hopla.documents.core import BUILT_INS
+from hopla.documents.core import DEFAULT_ENCODING
 from hopla.documents.core.document import BaseDocument
 from hopla.documents.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.events import dispatcher
+from hopla.events.signals import Signals
 from hopla.logging import logger
 from hopla.logging.log_exception import log_exception
-from hopla.events.signals import Signals
-from hopla.events import dispatcher
-from datetime import datetime
 
 
 class Document(BaseDocument):
@@ -63,8 +63,8 @@ class Document(BaseDocument):
     def validate(self, document):
         return True
 
-    def get_document(self):
-        return self._inner_value
+    def get_data(self):
+        return self._inner_data
 
     @property
     def create_date(self):
@@ -75,8 +75,8 @@ class Document(BaseDocument):
         return self._update_date
 
     @log_exception(logger)
-    def set_document(self, document):
-        cached_value = None if self._new else self._inner_value
+    def set_data(self, document):
+        cached_value = None if self._new else self._inner_data
         if type(document) == str or type(document) == bytes:
             if type(document) == bytes:
                 encoding = chardet.detect(document)["encoding"]
@@ -88,16 +88,16 @@ class Document(BaseDocument):
                     document = document.decode(encoding)
                 else:
                     document = document.decode(self._encoding)
-            self._inner_value = document
+            self._inner_data = document
         elif type(document) in BUILT_INS:
-            self._inner_value = document
+            self._inner_data = document
         elif type(document) == TextIOBase or type(document) == LocalPath:
             try:
-                self._inner_value = load(document)
+                self._inner_data = load(document)
             except Exception as ex:
                 raise CoreDocumentException(ex)
         else:
-            self._inner_value = document
+            self._inner_data = document
 
         try:
             _ = str(self)
@@ -113,7 +113,7 @@ class Document(BaseDocument):
                     "document": self,
                     "changes": {
                         "from": cached_value,
-                        "to": self._inner_value
+                        "to": self._inner_data
                     }},
                 signal=Signals.DOCUMENT_UPDATED,
                 sender=object())
@@ -133,22 +133,22 @@ class Document(BaseDocument):
         self._encoding = DEFAULT_ENCODING if type(encoding) != str else encoding
         self._key = key
         self._name = name
-        self._inner_value = None
+        self._inner_data = None
         self._ttl = ttl
         self._options = options
         self._new = True
-        self._create_date = datetime.utcnow().timestamp()
+        self._create_date = int(datetime.utcnow().timestamp())
         self._update_date = self._create_date
 
         if document is None:
             if len(args) == 1:
-                self.set_document(args[0])
+                self.set_data(args[0])
             elif len(args) > 1:
-                self.set_document(args)
+                self.set_data(args)
             else:
-                self.set_document(None)
+                self.set_data(None)
         else:
-            self.set_document(document)
+            self.set_data(document)
 
         dispatcher.send_message(
             message={
@@ -182,7 +182,7 @@ class Document(BaseDocument):
                     "__create_date": d.create_date,
                     "__update_date": d.update_date,
                     "__ttl": d.ttl,
-                    "__document": Document._to_dict(d.get_document()),
+                    "__data": Document._to_dict(d.get_data()),
                 }
             }
 
@@ -230,33 +230,46 @@ class Document(BaseDocument):
         b_name = BaseDocument.__name__
         o = loads(string_value)
 
-        if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
-                                "__document", "__ttl"} == set(o.keys()):
-            if type(o["__document"]) == dict and {"__object", "__type"} == set(o["__document"].keys()) and \
-                    o["__document"][
-                        "__type"] == b_name:
-                sub_o = Document.from_str(dumps(o["__document"]["__object"]), new=new_instance)
-                o["__document"] = sub_o
-            core_id = str(uuid.uuid4()) if new_instance else o["__id"]
-            doc = Document(o["__document"], core_id=core_id,
-                           encoding=o["__encoding"], key=o["__key"], name=o["__name"])
-            doc._create_date = datetime.utcnow().timestamp() if new_instance else o["__create_date"]
-            doc._update_date = doc._create_date if new_instance else o["__update_date"]
-            doc._ttl = -1 if new_instance else o["__ttl"]
-            return doc
-
         if type(o) == dict and {"__type", "__object"} == set(o.keys()) and o["__type"] == b_name:
             return Document.from_str(dumps(o["__object"]), new=new_instance)
 
         if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
-                                "__document", "__ttl"} != set(o.keys()):
+                                "__data", "__ttl"} == set(o.keys()):
+            core_id = str(uuid.uuid4()) if new_instance else o["__id"]
+            doc = Document(o["__data"], core_id=core_id,
+                           encoding=o["__encoding"], key=o["__key"], name=o["__name"])
+
+            if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()) and \
+                    o["__data"][
+                        "__type"] == b_name:
+                doc.set_data(Document.from_str(dumps(o["__data"]["__object"]), new=new_instance))
+            else:
+                doc.set_data(Document.from_str(dumps(o["__data"])))
+
+            doc._create_date = int(datetime.utcnow().timestamp()) if new_instance else o["__create_date"]
+            doc._update_date = doc._create_date if new_instance else o["__update_date"]
+            doc._ttl = -1 if new_instance else o["__ttl"]
+
+            return doc
+
+        if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
+                                "__data", "__ttl"} != set(o.keys()):
             return {k: Document.from_str(dumps(v), new=new_instance) for k, v in o.items()}
 
         if type(o) == list:
             return [Document.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
-
         return o
 
     def __repr__(self):
         return "<class '{klass}' - value {value}>".format(klass=type(self).__name__, value=dumps(self.toDict()))
 
+    def flatten_document(self):
+        def _flatten_doc(o, dictionary):
+            if issubclass(type(o), BaseDocument):
+                o.set_data(_flatten_doc(o.get_data(), dictionary))
+
+        doc = self.clone(new=False)
+        dictionary = dict()
+        _flatten_doc(doc, dictionary.get_data())
+
+        return doc

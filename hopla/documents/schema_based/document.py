@@ -34,10 +34,10 @@ class ValidatedDocument(Document):
     def validate(self, document):
         schema = self.options["schema"]
         info = None
-        if type(schema["value"]) == dict:
+        if type(schema["data"]) == dict:
             try:
-                validate(document, schema["value"])
-                info = Document(schema["value"])
+                validate(document, schema["data"])
+                info = Document(schema["data"])
             except ValidationError as ex:
                 if "as_warning" in schema and schema["as_warning"]:
                     warnings.warn(SchemaValidationWarning(ex))
@@ -46,7 +46,7 @@ class ValidatedDocument(Document):
         return dict(valid=True, info=info)
 
     @log_exception(logger)
-    def set_document(self, document):
+    def set_data(self, document):
         if "schema" in self.options.keys() and type(self.options["schema"]) == dict and "value" in self.options[
             "schema"].keys():
             validation = self.validate(document)
@@ -57,9 +57,9 @@ class ValidatedDocument(Document):
                     "validator": validation["info"]},
                     signal=Signals.DOCUMENT_VALIDATED,
                     sender=object())
-                super().set_document(document)
+                super().set_data(document)
             else:
                 raise SchemaValidationException("Error validating document: {info}".format(info=validation["info"]))
         else:
             warnings.warn(SchemaValidationWarning("Missing validator"))
-            super().set_document(document)
+            super().set_data(document)

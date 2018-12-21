@@ -53,11 +53,11 @@ class BaseDocument(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_document(self, value):
+    def set_data(self, value):
         raise NotImplementedError
 
     @abstractmethod
-    def get_document(self):
+    def get_data(self):
         raise NotImplementedError
 
     @abstractmethod

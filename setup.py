@@ -7,9 +7,11 @@ PACKAGE_NAME="hopla"
 
 
 class PyTest(TestCommand):
+    user_options = [("pytest-args=", "a", "Arguments to pass to pytest")]
+
     def initialize_options(self):
         TestCommand.initialize_options(self)
-        self.pytest_args = "--disable-pytest-warnings --cov-report term-missing --cov={name} -s -v".format(name=PACKAGE_NAME)
+        self.pytest_args = "--disable-pytest-warnings --cov-report term-missing --cov={name}".format(name=PACKAGE_NAME)
 
     def run_tests(self):
         import shlex
@@ -22,6 +24,8 @@ setup(
     name=PACKAGE_NAME,
     version='0.0.1',
     packages=['hopla',
+              'hopla.config',
+              'hopla.config.base',
               'hopla.documents',
               'hopla.documents.core',
               'hopla.documents.schema_based',
@@ -41,6 +45,7 @@ setup(
                       'jsonschema',
                       'neo4j',
                       'objectpath',
+                      'py',
                       'testfixtures',
                       'ujson', ],
     extras_require=dict(

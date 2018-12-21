@@ -7,9 +7,6 @@ from pydispatch import dispatcher
 from testfixtures import LogCapture
 
 from hopla.documents.core import DEFAULT_ENCODING
-from hopla.documents.core.options import Options
-from hopla.documents.core.properties import Properties
-from hopla.documents.core.schema import Schema
 from hopla.documents.document import Document
 from hopla.documents.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
     SchemaValidationWarning, SchemaValidationException
@@ -31,10 +28,30 @@ def capture_logs():
     with LogCapture() as capture:
         yield capture
 
+# ['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__',
+# '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__',
+# '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__',
+#  '_addfinalizer', '_arg2fixturedefs', '_arg2index', '_check_scope', '_compute_fixture_value', '_factorytraceback',
+# '_fillfixtures', '_fixture_defs', '_fixturedef', '_fixturemanager', '_get_active_fixturedef', '_get_fixturestack',
+# '_getnextfixturedef', '_getscopeitem', '_parent_request', '_pyfuncitem', 'addfinalizer', 'applymarker',
+# 'cached_setup', 'cls', 'config', 'fixturename', 'fixturenames', 'fspath', 'funcargnames', 'function',
+# 'getfixturevalue', 'getfuncargvalue', 'instance', 'keywords', 'module', 'node', 'param_index', 'raiseerror',
+# 'scope', 'session']
+
+# @pytest.fixture(scope="function", autouse=True)
+# def before_each_function(request):
+#     print(">"*80, "Oh, hello!", "<"*80)
+#
+#     def after_each_function():
+#         print(">"*80, "Oh, good bye!", "<"*80)
+#
+#     print("!"*80, request.keywords, "!"*80)
+#     request.addfinalizer(after_each_function)
+
 
 def test_init():
     doc = Document()
-    assert doc.get_document() is None
+    assert doc.get_data() is None
     assert doc.core_id is not None
     assert type(doc.core_id) == str
     assert doc.key is None
@@ -45,20 +62,20 @@ def test_init():
     doc = Document(core_id=core_id, key=key, document=TEST_VAL)
     assert doc.core_id == core_id
     assert doc.key == key
-    assert doc.get_document() == TEST_VAL
+    assert doc.get_data() == TEST_VAL
 
     doc = Document(document=TEST_DOCUMENT)
-    assert doc.get_document() == TEST_DOCUMENT
+    assert doc.get_data() == TEST_DOCUMENT
 
     encoding = DEFAULT_ENCODING
     bytes_val = TEST_DOCUMENT.encode(encoding)
     doc = Document(document=TEST_DOCUMENT)
-    assert doc.get_document() == bytes_val.decode(encoding)
+    assert doc.get_data() == bytes_val.decode(encoding)
 
     encoding = "utf-16"
     bytes_val = TEST_DOCUMENT.encode(encoding)
     doc = Document(document=bytes_val, encoding=encoding)
-    assert doc.get_document() == bytes_val.decode(encoding)
+    assert doc.get_data() == bytes_val.decode(encoding)
 
 
 def test_name_is_string():
@@ -97,7 +114,7 @@ def test_circular_warning(recwarn):
     warnings.simplefilter("always")
     inner_doc = Document()
     main_doc = Document(document=inner_doc)
-    inner_doc.set_document(main_doc)
+    inner_doc.set_data(main_doc)
     assert len(recwarn) == 1
     assert recwarn.pop(CircularReferenceWarning)
 
@@ -115,7 +132,7 @@ def test_init_stream(tmpdir):
     val = tmpdir.mkdir("sub").join("value.json")
     val.write(str_value)
     doc = Document(document=val)
-    assert doc.get_document() == TEST_VAL
+    assert doc.get_data() == TEST_VAL
 
 
 def test_init_stream_with_exc(tmpdir):
@@ -130,7 +147,7 @@ def test_init_stream_with_exc(tmpdir):
 
 def test_schema_validated_document():
     options = {"schema": {
-        "value": {
+        "data": {
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
@@ -139,12 +156,12 @@ def test_schema_validated_document():
         }}}
     value_doc = {"name": "Lord of the ring", "price": 34.99}
     validated_doc = ValidatedDocument(value_doc, options=options)
-    assert validated_doc.get_document() == value_doc
+    assert validated_doc.get_data() == value_doc
 
 
 def test_schema_validated_document_exception():
     options = {"schema": {
-        "value": {
+        "data": {
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
@@ -156,7 +173,7 @@ def test_schema_validated_document_exception():
         assert type(e_info) == SchemaValidationException
 
     options = {"schema": {
-        "value": {
+        "data": {
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
@@ -172,7 +189,7 @@ def test_schema_validated_document_exception():
 
 def test_schema_validated_document_warning(recwarn):
     options = {"schema": {
-        "value": {
+        "data": {
             "type": "object",
             "properties": {
                 "price": {"type": "number"},
@@ -230,7 +247,7 @@ def test_event_document_created():
     def handle_creation(message):
         assert message["type"] == Signals.DOCUMENT_CREATED
         assert type(message["document"]) == Document
-        assert message["document"].get_document() == TEST_DOCUMENT
+        assert message["document"].get_data() == TEST_DOCUMENT
 
     connect_handler(handle_creation, signal=Signals.DOCUMENT_CREATED, sender=dispatcher.Any)
     _ = Document(TEST_DOCUMENT)
@@ -239,16 +256,21 @@ def test_event_document_created():
 
 def test_event_document_new_cloned():
     def handle_cloning_new(message):
-        assert message["type"] == Signals.DOCUMENT_CLONED
-        assert type(message["document"]) == Document
-        assert message["document"].get_document() == TEST_DOCUMENT
-        assert message["source"].get_document() == TEST_DOCUMENT
-        assert message["document"].core_id != message["source"].core_id
-        assert message["document"].create_date != message["source"].create_date
-        assert message["document"].update_date != message["source"].update_date
-        assert message["document"].ttl != message["source"].ttl
+        if "test_event_document_new_cloned" in globals()["cache"].keys() and globals()["cache"][
+            "test_event_document_new_cloned"]:
+            assert message["type"] == Signals.DOCUMENT_CLONED
+            assert type(message["document"]) == Document
+            assert message["document"].get_data() == TEST_DOCUMENT
+            assert message["source"].get_data() == TEST_DOCUMENT
+            assert message["document"].core_id != message["source"].core_id
+            assert message["document"].create_date != message["source"].create_date
+            assert message["document"].update_date != message["source"].update_date
+            assert message["document"].ttl != message["source"].ttl
+            del globals()["cache"]["test_event_document_new_cloned"]
 
     connect_handler(handle_cloning_new, signal=Signals.DOCUMENT_CLONED, sender=dispatcher.Any)
+    globals()["cache"]["run_handler"] = True
+
     d = Document(TEST_DOCUMENT, ttl=10)
     d.clone(new=True)
     disconnect_handler(signal=Signals.DOCUMENT_CLONED)
@@ -258,8 +280,8 @@ def test_event_document_cloned():
     def handle_cloning(message):
         assert message["type"] == Signals.DOCUMENT_CLONED
         assert type(message["document"]) == Document
-        assert message["document"].get_document() == TEST_DOCUMENT
-        assert message["source"].get_document() == TEST_DOCUMENT
+        assert message["document"].get_data() == TEST_DOCUMENT
+        assert message["source"].get_data() == TEST_DOCUMENT
         assert message["document"].core_id == message["source"].core_id
         assert message["document"].create_date == message["source"].create_date
         assert message["document"].update_date == message["source"].update_date
@@ -275,13 +297,13 @@ def test_event_document_updated():
     def handle_update(message):
         assert message["type"] == Signals.DOCUMENT_UPDATED
         assert type(message["document"]) == Document
-        assert message["document"].get_document() == TEST_DOCUMENT * 2
+        assert message["document"].get_data() == TEST_DOCUMENT * 2
         assert message["changes"]["from"] == TEST_DOCUMENT
         assert message["changes"]["to"] == TEST_DOCUMENT * 2
 
     connect_handler(handle_update, signal=Signals.DOCUMENT_UPDATED, sender=dispatcher.Any)
     d = Document(TEST_DOCUMENT)
-    d.set_document(TEST_DOCUMENT * 2)
+    d.set_data(TEST_DOCUMENT * 2)
     disconnect_handler(signal=Signals.DOCUMENT_UPDATED)
 
 
@@ -297,7 +319,7 @@ def test_dict_from_str():
     assert type(dico["test"]) == Document
 
 
-def test_list_from_Str():
+def test_list_from_str():
     lst = Document.from_str(dumps([Document().toDict(), Document()]))
     assert type(lst) == list
     for d in lst:
@@ -334,7 +356,7 @@ def test_hash():
     assert dd == d
     assert hash(d) == hash(dd)
     assert hash(d) != hash(Document(TEST_DOCUMENT))
-    dd.set_document(None)
+    dd.set_data(None)
     assert hash(d) != hash(dd)
 
 
@@ -415,6 +437,7 @@ def test_dispatcher_wrong_handler_type():
 def test_dispatcher_wrong_signal_type():
     def handler(_):
         pass
+
     with pytest.raises(Exception) as e_info:
         connect_handler(handler, 0)
         assert type(e_info) == TypeError
@@ -427,62 +450,3 @@ def test_dispatcher_wrong_args_count():
     with pytest.raises(Exception) as e_info:
         connect_handler(handler, Signals.UNKNOWN)
         assert type(e_info) == HandlerArgsCountException
-
-
-def test_create_schema():
-    _ = Schema(value={})
-    assert True
-
-    with pytest.raises(ValueError) as e_info:
-        _ = Schema()
-        assert type(e_info) == ValueError
-
-    with pytest.raises(TypeError) as e_info:
-        _ = Schema(value="TEST")
-        assert type(e_info) == TypeError
-
-
-def test_create_options():
-    _ = Options()
-    assert True
-
-    _ = Options(schema=None)
-    assert True
-
-    with pytest.raises(TypeError) as e_info:
-        _ = Options(schema="WRONG")
-        assert type(e_info) == TypeError
-
-
-def test_class_properties():
-    class Test(Properties):
-        @staticmethod
-        def from_dict(value):
-            pass
-
-    t = Test()
-
-    assert t.data == {}
-
-    t["test"] = "test"
-    assert t["test"] == "test"
-
-    del t["test"]
-    assert len(t) == 0
-
-    assert list(iter(t)) == []
-
-
-def test_schema_from_dict():
-    v = {}
-    s = Schema.from_dict(v)
-    assert s.value == v
-
-    v = {"value": {}}
-    assert s.value == v["value"]
-
-
-def test_options_from_dict():
-    v =  {"value": {}}
-    s = Options.from_dict(v)
-    assert s.schema.value == v["value"]
