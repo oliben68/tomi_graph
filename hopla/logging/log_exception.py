@@ -5,6 +5,7 @@ def log_exception(logger, exception_type=None):
     :param exception_type: only logs exceptions when this type of exception is raised; None all are logged
     :return:
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             try:
@@ -16,5 +17,7 @@ def log_exception(logger, exception_type=None):
                 else:
                     logger.exception(ex)
                 raise
+
         return wrapper
+
     return decorator
