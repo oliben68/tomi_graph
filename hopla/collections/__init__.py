@@ -1,11 +1,15 @@
 from collections.abc import MutableMapping, MutableSequence, Collection
+from uuid import UUID
 
 from morph import unflatten
 
 DEFAULT_IDX_MARKER = "idx_"
-DEFAULT_SEPARATOR = "___"
+DEFAULT_SEPARATOR = "."
 MORPH_SEPARATOR = "."
 DEFAULT_NULL_IDX = -1
+EMPTY_DICT_PLACEHOLDER = "{empty map}"
+EMPTY_ARRAY_PLACEHOLDER = "[empty list]"
+
 
 def _set_defaults(sep, idx_marker):
     return DEFAULT_SEPARATOR if sep is None else sep, DEFAULT_IDX_MARKER if idx_marker is None else idx_marker
@@ -27,19 +31,23 @@ def flatten(obj, key='', sep=None, idx_marker=None):
         k = item[0]
         v = item[1]
         new_key = key + sep + k if key else k
-
-        # try:
-        #     v = v.toDict()
-        # except AttributeError:
-        #     pass
-
-        if isinstance(v, MutableMapping):
-            items.extend(flatten(v, key=new_key, sep=sep).items())
-        elif isinstance(v, MutableSequence) or type(v) in (set, tuple, list):
-            new_value = {idx_marker + str(k): v for k, v in enumerate(v)}
-            items.extend(flatten(new_value, key=new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
+        try:
+            if isinstance(v, MutableMapping):
+                if len(v) == 0:
+                    items.extend({new_key: EMPTY_DICT_PLACEHOLDER}.items())
+                else:
+                    items.extend(flatten(v, key=new_key, sep=sep).items())
+            elif isinstance(v, MutableSequence) or type(v) in (set, tuple, list):
+                if len(v) == 0:
+                    items.extend({new_key: EMPTY_ARRAY_PLACEHOLDER}.items())
+                else:
+                    new_value = {idx_marker + str(k): v for k, v in enumerate(v)}
+                    items.extend(flatten(new_value, key=new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+        except:
+            print(k, v)
+            raise
     return dict(items)
 
 
@@ -47,6 +55,10 @@ def dict_to_array(obj, idx_marker=None):
     try:
         iter(obj)
         if type(obj) == str:
+            if obj == EMPTY_DICT_PLACEHOLDER:
+                return {}
+            elif obj == EMPTY_ARRAY_PLACEHOLDER:
+                return []
             return obj
     except TypeError:
         return obj

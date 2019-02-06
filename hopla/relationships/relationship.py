@@ -88,7 +88,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 return v.name
             elif type(v) == weakref.ReferenceType:
                 entity = v()
-                return entity if issubclass(type(entity), BaseEntity) else None
+                return entity.toDict() if issubclass(type(entity), BaseEntity) else None
             else:
                 return v
 

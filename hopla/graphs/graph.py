@@ -128,11 +128,6 @@ class Graph(OperatorsResolver, BaseGraph):
                                                                                             self=type(self).__name,
                                                                                             other=type(other).__name))
 
-    def toDict(self):
-        return dict(__entities=self._entities,  # {k: v.toDict() for k, v in .items()},
-                    __relationships=[r.toDict() for r in self.relationships],
-                    __namespace_map=self.namespace_map)
-
     def search_relationships(self, **kwargs):
         # Defaults for search arguments: name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL
         search_arguments = {k: v for k, v in kwargs.items() if v != DefaultValues.RELATIONSHIP.value[k]}

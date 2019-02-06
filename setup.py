@@ -110,7 +110,7 @@ setup(
                       'testfixtures',
                       'ujson',
                       'uri',
-                      'pyyaml', ],
+                      'pyyaml', 'neobolt'],
     extras_require=dict(
         test=['testfixtures', ],
     ),

@@ -183,11 +183,6 @@ class EntityGraph(Graph):
     def __str__(self):
         return str(self.toDict())
 
-    def toDict(self):
-        return dict(__entities={k: v.toDict() for k, v in self._entities.items()},
-                    __relationships=self.relationships,
-                    __namespace_map=self.namespace_map)
-
     def search_relationships(self, name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL):
         pass
 
