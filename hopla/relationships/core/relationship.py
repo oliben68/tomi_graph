@@ -1,10 +1,21 @@
 from abc import ABC, abstractmethod
 
+from hopla.base.graph import Category
 
-class BaseRelationship(ABC):
+from hopla.base.graph.core import Core
+
+
+class BaseRelationship(Core, ABC):
+    category = Category.RELATIONSHIP
+
     @property
     @abstractmethod
     def id(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def name(self):
         raise NotImplementedError
 
     @property
@@ -42,19 +53,8 @@ class BaseRelationship(ABC):
     def protection(self):
         raise NotImplementedError
 
-    @property
     @abstractmethod
-    def safe(self):
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def on_gc_collect(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def __init__(self, entity_1, entity_2, rel_type=None, direction=None, protection=None, on_gc_collect=None,
-                 **kwargs):
+    def __init__(self, entity_1, entity_2, rel_type=None, direction=None, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
@@ -62,9 +62,6 @@ class BaseRelationship(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, rel_type=None, direction=None, protection=None):
+    def __call__(self, name=None, data=None):
         raise NotImplementedError
 
-    @abstractmethod
-    def __add__(self, other):
-        raise NotImplementedError

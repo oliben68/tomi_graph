@@ -1,11 +1,13 @@
-from hopla.entities.entity import Entity
 from hopla.graphs.graph import Graph
-from hopla.relationships.core import Direction, Protection, RelationType
+
+from hopla.entities.entity import Entity
+from hopla.graphs.entity_graph import EntityGraph
+from hopla.relationships.core import Direction
 from hopla.relationships.relationship import Relationship
 
 
 def test_graph():
-    assert Graph(Entity())
+    assert EntityGraph(Entity())
 
 
 def test_complex_graph():
@@ -23,7 +25,7 @@ def test_complex_graph():
     assert len(g.relationships) == 5
     assert g.entity.core_id == root.core_id
     assert g.entity != root
-    assert len(g.entities_refs) == len(ids)
+    assert len(g.entities) == len(ids)
     assert len(g.relationships) == len(ids) - 1
     assert g.graph
     assert len(g.graph["__entities"]) == len(ids)
@@ -41,111 +43,6 @@ def test_relationship():
     assert rel.entity_2 == e_two
     assert rel.rel_type == Relationship.__name__.upper()
     assert rel.data == {}
-    assert rel.safe == {}
-
-
-def test_relationship_on_delete():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    rel = Relationship(e_one, e_two)
-
-    del e_one
-    assert rel.entity_1 is None
-
-
-def test_relationship_on_delete_preserve():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    d_one = e_one.toDict()
-
-    rel = Relationship(e_one, e_two, protection=Protection.PRESERVE)
-    del e_one
-    assert rel.safe['entity_1'] == d_one
-
-
-def test_relationship_on_delete_cascade_delete():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    rel = Relationship(e_one, e_two, protection=Protection.CASCADE_DELETE)
-    del e_one
-    assert rel.id is None
-    assert rel.entity_1 is None
-    assert rel.entity_2 is None
-    assert rel.safe == {}
-    assert rel.rel_type == RelationType.NONE.string
-    assert rel.direction == Direction.NONE
-    assert rel.protection == Protection.NONE
-
-
-gc_collect_called = False
-gc_collect_args = []
-
-
-def test_relationship_on_delete_gc_collect():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    def on_gc_collect(*args, **kwargs):
-        global gc_collect_called
-        global gc_collect_args
-
-        gc_collect_called = True
-        gc_collect_args = kwargs
-
-    rel = Relationship(e_one, e_two, on_gc_collect=on_gc_collect)
-
-    del e_one
-
-    assert gc_collect_called
-    assert gc_collect_args["relationship"] == rel
-
-
-gc_collect_called = False
-
-
-def test_relationship_on_delete_gc_collect_predominance_over_preserve():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    def on_gc_collect(*args, **kwargs):
-        global gc_collect_called
-        gc_collect_called = True
-
-    rel = Relationship(e_one, e_two, on_gc_collect=on_gc_collect, protection=Protection.PRESERVE)
-
-    del e_one
-
-    assert gc_collect_called
-    assert rel.safe == {}
-
-
-gc_collect_called = False
-
-
-def test_relationship_on_delete_gc_collect_predominance_over_cascade_delete():
-    e_one = Entity(core_id="One")
-    e_two = Entity(core_id="Two")
-
-    def on_gc_collect(*args, **kwargs):
-        global gc_collect_called
-        gc_collect_called = True
-
-    rel = Relationship(e_one, e_two, on_gc_collect=on_gc_collect, protection=Protection.CASCADE_DELETE)
-
-    del e_one
-
-    assert gc_collect_called
-    assert rel.safe == {}
-    assert rel.id is not None
-    assert rel.entity_1 is None
-    assert rel.entity_2 is not None
-    assert rel.safe == {}
-    assert rel.rel_type != RelationType.NONE
-    assert rel.direction == Direction.NONE
-    assert rel.protection == Protection.CASCADE_DELETE
 
 
 def test_link_operators():
@@ -167,36 +64,135 @@ def test_link_operators():
     assert rel_right_left.direction == Direction.RIGHT_TO_LEFT
 
 
+def test_link_multiple_operators():
+    e1 = Entity("E1", core_id="E1")
+    e2 = Entity("E2", core_id="E2")
+    e3 = Entity("E3", core_id="E3")
+
+    g1 = e1 - e2 - e3
+
+    assert type(g1) == Graph
+    assert len(g1.entities) == 3
+    assert len(g1.relationships) == 2
+
+    g2 = e1 > (e2 > e3)
+
+    assert type(g2) == Graph
+    assert len(g2.entities) == 3
+    assert len(g2.relationships) == 2
+
+    g3 = e1 < (e2 < e3)
+
+    assert type(g3) == Graph
+    assert len(g3.entities) == 3
+    assert len(g3.relationships) == 2
+
+    rel_first = e2 > e3
+    g4 = e1 < rel_first
+
+    assert type(rel_first) == Relationship
+    assert type(g4) == Graph
+    assert len(g4.entities) == 3
+    assert len(g4.relationships) == 2
+
+
+def test_mix_types_operations():
+    e1 = Entity("E1", core_id="E1")
+    e2 = Entity("E2", core_id="E2")
+    e3 = Entity("E3", core_id="E3")
+    e4 = Entity("E4", core_id="E4")
+    e5 = Entity("E5", core_id="E5")
+    e6 = Entity("E6", core_id="E6")
+
+    g1 = e1 - e2 - e3
+    g5 = g1 + e4
+    assert type(g5) == Graph
+    assert e4.core_id in g5.isolates
+    assert len(g5.entities) == 4
+    assert len(g5.relationships) == 2
+
+    r1 = e1 - e2
+    assert type(r1) == Relationship
+    g6 = e3 - e4 - e5
+    assert type(g6) == Graph
+    g6 = g6 + r1
+    assert type(g6) == Graph
+    assert len(g6.entities) == 5
+    assert len(g6.relationships) == 3
+
+    g7 = e1 - e2 - e3
+    g8 = e4 - e5 - e6
+    assert type(g7) == Graph
+    assert type(g8) == Graph
+    g9 = g7 + g8
+    assert type(g9) == Graph
+    assert len(g9.relationships) == len(g7.relationships) + len(g8.relationships)
+    assert set(g9.entities.keys()) == set(list(g7.entities.keys()) + list(g8.entities.keys()))
+
+
+def test_adding_entity_graph():
+    ids = ["A", "B", "C", "D", "E", "ROOT"]
+
+    d_a = Entity(ids[0], core_id=ids[0])
+    d_b = Entity(ids[1], core_id=ids[1])
+    d_c = Entity(ids[2], core_id=ids[2])
+    d_d = Entity(d_a, d_b, d_c, core_id=ids[3])
+    d_e = Entity([{"D_d": d_d}], core_id=ids[4])
+    root = Entity(d_e, core_id=ids[5])
+
+    g1 = root.graph
+
+    e1 = Entity("E1", core_id="E1")
+    e2 = Entity("E2", core_id="E2")
+    e3 = Entity("E3", core_id="E3")
+
+    g2 = e1 - e2 - e3
+
+    g3 = g1 + g2
+    assert type(g3) == Graph
+    assert len(g3.relationships) == len(g1.relationships) + len(g2.relationships)
+    assert set(g3.entities.keys()) == set(list(g1.entities.keys()) + list(g2.entities.keys()))
+
+
 def test_callable():
     e1 = Entity("L1", core_id="L1")
     e2 = Entity("R1", core_id="R1")
-    rel = (e1 - e2)(rel_type="TYPE", protection=Protection.NONE, data=dict(a=2))
+    rel = e1 - e2
+    rel(rel_type="TYPE", data=dict(a=2))
 
     assert type(rel) == Relationship
     assert rel.rel_type == "TYPE"
-    assert rel.protection == Protection.NONE
-    assert rel.data == dict(a=2)
+    assert rel.data == dict()
 
 
-def test_callable_change_protection():
-    e1 = Entity("L1", core_id="L1")
-    e2 = Entity("R1", core_id="R1")
-    e3 = Entity("R3", core_id="R3")
-    e4 = Entity("R4", core_id="R4")
+def test_graph_methods():
+    e1 = Entity("E1", core_id="E1")
+    e2 = Entity("E2", core_id="E2")
+    e3 = Entity("E3", core_id="E3")
 
-    rel1 = e1 - e2
+    g = Graph(Graph.NAMESPACE_DELIMITER)
 
-    assert rel1.protection == Protection.NONE
-    del e2
-    assert rel1.entity_2 is None
+    g.add_entity(e1)
+    g.add_relationship(Relationship(e2, e3))
 
-    rel2 = e1 - e3
-    assert rel1.protection == Protection.NONE
+    g_entities_count = len(g.entities)
+    g_relationships_count = len(g.relationships)
+    assert g_entities_count == 3
+    assert g_relationships_count == 1
 
-    rel2 = rel2(protection=Protection.PRESERVE)
-    assert rel2.protection == Protection.PRESERVE
+    e4 = Entity("E4", core_id="E4")
+    e5 = Entity("E5", core_id="E5")
+    e6 = Entity("E6", core_id="E6")
 
-    e3_dict = e3.toDict()
-    del e3
-    assert "entity_2" in rel2.safe.keys()
-    assert rel2.safe["entity_2"] == e3_dict
+    g2 = Graph(Graph.NAMESPACE_DELIMITER)
+
+    g2.add_relationship(Relationship(e4, e5))
+    g2.add_relationship(e5 - e6)
+
+    assert len(g2.entities) == 3
+    assert len(g2.relationships) == 2
+
+    g.add_graph(g2)
+
+    assert len(g.entities) == len(g2.entities) + g_entities_count
+    assert len(g.relationships) == len(g2.relationships) + g_relationships_count

@@ -7,9 +7,12 @@ from io import TextIOBase
 from ujson import loads, load, dumps
 
 import chardet
+from hopla.graphs.entity_graph import EntityGraph
 from objectpath import Tree
 from py._path.local import LocalPath
 
+from hopla.base.graph import GraphOperation, GraphOperationDirection
+from hopla.base.graph.operator_resolver import OperatorsResolver
 from hopla.entities.core import BUILT_INS
 from hopla.entities.core import DEFAULT_ENCODING
 from hopla.entities.core.entity import BaseEntity
@@ -22,7 +25,7 @@ from hopla.relationships.core import Direction
 from hopla.relationships.relationship import Relationship
 
 
-class Entity(BaseEntity):
+class Entity(OperatorsResolver, BaseEntity):
     @property
     def entity_type(self):
         return self._entity_type
@@ -85,7 +88,7 @@ class Entity(BaseEntity):
     @property
     def graph(self):
         if self._graph is None:
-            self._graph = Graph(self)
+            self._graph = EntityGraph(self)
         return self._graph
 
     @auto_log()
@@ -262,7 +265,6 @@ class Entity(BaseEntity):
     @staticmethod
     def from_str(string_value, new=None):
         new_instance = new if type(new) == bool else False
-        b_name = Entity.__name__
         o = loads(string_value)
 
         if type(o) == dict and {"__type", "__object"} == set(o.keys()):
@@ -294,14 +296,53 @@ class Entity(BaseEntity):
         return o
 
     def __repr__(self):
-        return "<type '{klass}' - value {value}>".format(klass=self.entity_type, value=dumps(self.toDict()))
+        # In some corner cases __repr__ gets called before __init__
+        try:
+            return "<type '{klass}' - value {value}>".format(klass=self.entity_type, value=dumps(self.toDict()))
+        except AttributeError:
+            return super().__repr__()
 
-    # operators
-    def __sub__(self, other):
-        return Relationship(self, other, direction=Direction.NONE)
+    def operation_resolution(self, other, operation, direction):
+        if operation == GraphOperation.LINK:
+            operator = "-"
+            if direction == GraphOperationDirection.ENTITY_ENTITY:
+                return Relationship(self, other, direction=Direction.NONE)
+            if direction == GraphOperationDirection.ENTITY_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self, other.entity_2))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name__))
+        if operation == GraphOperation.LINK_LEFT_RIGHT:
+            operator = ">"
+            if direction == GraphOperationDirection.ENTITY_ENTITY:
+                return Relationship(self, other, direction=Direction.LEFT_TO_RIGHT)
+            if direction == GraphOperationDirection.ENTITY_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self, other.entity_2, direction=Direction.LEFT_TO_RIGHT))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name))
+        if operation == GraphOperation.LINK_RIGHT_LEFT:
+            operator = "<"
+            if direction == GraphOperationDirection.ENTITY_ENTITY:
+                return Relationship(self, other, direction=Direction.RIGHT_TO_LEFT)
+            if direction == GraphOperationDirection.ENTITY_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self, other.entity_2, direction=Direction.RIGHT_TO_LEFT))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name))
 
-    def __gt__(self, other):
-        return Relationship(self, other, direction=Direction.LEFT_TO_RIGHT)
-
-    def __lt__(self, other):
-        return Relationship(self, other, direction=Direction.RIGHT_TO_LEFT)
