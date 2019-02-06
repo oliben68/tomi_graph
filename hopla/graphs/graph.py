@@ -1,189 +1,166 @@
-import ujson
-from copy import deepcopy
-from ujson import loads
+from uuid import uuid4
 
-from objectpath import Tree
-
+from hopla.base.graph import GraphOperation, GraphOperationDirection, DefaultValues
+from hopla.base.graph.operator_resolver import OperatorsResolver
 from hopla.entities.core.entity import BaseEntity
-from hopla.relationships.core import RelationType, Protection
-from hopla.relationships.relationship import Relationship
-
-NAMESPACE_DELIMITER = "::"
+from hopla.graphs.core.graph import BaseGraph
+from hopla.relationships.core.relationship import BaseRelationship
 
 
-class Graph(object):
-    def _flatten(self):
-
-        def to_id(d):
-            if issubclass(type(d), BaseEntity):
-                return {
-                    "__type": d.entity_type,
-                    "__id": d.core_id
-                }
-            return d
-
-        def swap_with_id(d):
-            if issubclass(type(d), dict) or type(d) == dict:
-                for idx, v in d.items():
-                    d[idx] = to_id(v)
-                    swap_with_id(v)
-            elif issubclass(type(d), list) or type(d) == list:
-                for idx, v in enumerate(d):
-                    d[idx] = to_id(v)
-                    swap_with_id(v)
-            elif issubclass(type(d), BaseEntity):
-                self._entities_refs[d.core_id] = d
-                d_data = d.get_data()
-                if type(d_data) == tuple:
-                    # some ugliness to bypass issues with the immutable nature of tuples
-                    d.set_data(tuple(to_id(list(d_data))))
-                else:
-                    d.set_data(to_id(d_data))
-                swap_with_id(d_data)
-
-        swap_with_id([self.entity] + self.entity.children())
-
-        for k, v in self._entities_refs.items():
-            data = v.get_data()
-            tree = Tree(ujson.loads(ujson.dumps(data)))
-            if hasattr(tree, "data"):
-                for ref in list(
-                        tree.execute('$..*[@.__type and @.__id]')):
-                    self._relationships.append(Relationship(
-                        entity_1=self._entities_refs[v.core_id],
-                        entity_2=self._entities_refs[ref["__id"]],
-                        rel_type=self._rel_type,
-                        protection=Protection.PRESERVE))
-
-    def _refs(self, core_id):
-        tree = Tree(loads(str(self._entities_refs[core_id])))
-        return list(tree.execute('$..*[@.__type is "BaseEntity" and @.__id]'))
-
-    def _assemble(self, entity):
-
-        def to_doc(d):
-            if (issubclass(type(d), dict) or type(d) == dict) and set(d.keys()) == {"__type", "__id"}:
-                if d["__id"] not in self._entities_refs.keys():
-                    # TODO: maybe raise exception here?
-                    return d
-                return self._entities_refs[d["__id"]]
-            return d
-
-        def swap_with_doc(d):
-            if issubclass(type(d), dict) or type(d) == dict:
-                if set(d.keys()) == {"__type", "__id"}:
-                    return swap_with_doc(to_doc(d))
-                else:
-                    for idx, v in d.items():
-                        d[idx] = swap_with_doc(to_doc(v))
-            elif issubclass(type(d), list) or type(d) == list:
-                for idx, v in enumerate(d):
-                    d[idx] = swap_with_doc(to_doc(v))
-            elif issubclass(type(d), BaseEntity):
-                d_data = d.get_data()
-                if type(d_data) == tuple:
-                    # some ugliness to bypass issues with the immutable nature of tuples
-                    d.set_data(tuple(swap_with_doc(list(d_data))))
-                else:
-                    d.bypass_update_date()
-                    d.set_data(swap_with_doc(d_data))
-            return d
-
-        ret = swap_with_doc(entity)
-        return ret
+class Graph(OperatorsResolver, BaseGraph):
+    NAMESPACE_DELIMITER = "/"
 
     @property
-    def entity(self):
-        return self._doc
-
-    @entity.setter
-    def entity(self, value):
-        if not issubclass(type(value), BaseEntity):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseEntity.__name__))
-        self._doc = value
-        self._relationships = []
-        self._entities_refs = {}
-        self._flatten()
-
-    def assemble(self, update=None):
-        root_id = self._doc.core_id
-        assembled_doc = self._assemble(deepcopy(self._entities_refs[root_id]))
-        if update:
-            self.entity = assembled_doc
-        return assembled_doc
-
-    @property
-    def root(self):
-        return self._doc.core_id
-
-    @property
-    def entities_refs(self):
-        return self._entities_refs
-
-    @entities_refs.setter
-    def entities_refs(self, value):
-        if issubclass(type(value), list) and type(value) == list:
-            if not all([issubclass(type(d), BaseEntity) for d in value]):
-                raise TypeError(
-                    "The entities_refs property should be a list where all element are of type {doc}.".format(
-                        doc=BaseEntity.__name__))
-            self._entities_refs = BaseEntity.serialize_to_string(value)
-
-        raise TypeError("The entities_refs property should be a list of {doc}.".format(doc=BaseEntity.__name__))
+    def id(self):
+        return self._id
 
     @property
     def relationships(self):
         return self._relationships
 
     @property
+    def entities(self):
+        return self._entities
+
+    @property
+    def namespace_root(self):
+        return self._namespace_root
+
+    @property
     def namespace_map(self):
-        if self._namespace_map is None:
-            self._namespace_map = {self.root: self.root}
-
-            def calculate_namespace(parent_namespace):
-                core_id = parent_namespace.split(NAMESPACE_DELIMITER)[-1]
-                for rel in [r for r in self._relationships if r.entity_1.core_id == core_id]:
-                    child_namespace = "{base}{delimitor}{entity_id}".format(base=parent_namespace,
-                                                                            entity_id=rel.entity_2.core_id,
-                                                                            delimitor=NAMESPACE_DELIMITER)
-                    self._namespace_map[rel.entity_2.core_id] = child_namespace
-                    calculate_namespace(child_namespace)
-
-            calculate_namespace(self.root)
         return self._namespace_map
 
     @property
-    def graph(self):
-        return self.toDict()
+    def namespace_delimiter(self):
+        return Graph.NAMESPACE_DELIMITER
 
-    def __init__(self, doc, rel_type=None, do_not_clone=None):
-        """
+    @property
+    def isolates(self):
+        linked_entities = set(
+            [core_id for sublist in [[r.entity_1.core_id, r.entity_2.core_id] for r in self.relationships] for core_id
+             in sublist])
+        return set([e.core_id for e in self.entities.values()]).difference(linked_entities)
 
-        :param doc:
-        :param rel_type:
-        :param do_not_clone:
-        """
-        if not issubclass(type(doc), BaseEntity):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseEntity.__name__))
-        self._doc = doc if do_not_clone else deepcopy(doc)
+    def __init__(self, namespace_root):
+        self._id = str(uuid4())
+        self._entities = {}
         self._relationships = []
-        self._entities_refs = {}
-        self._namespace_map = None
+        self._namespace_map = {}
+        self._namespace_root = namespace_root
 
-        if rel_type is None or type(rel_type) not in (str, RelationType):
-            self._rel_type = RelationType.EMBEDDED.string
+    def add_entity(self, entity, target=None):
+        target = self if target is None else target
+        target.entities[entity.core_id] = entity
+
+    def add_relationship(self, relationship, target=None):
+        target = self if target is None else target
+        if relationship.id not in [r.id for r in target.relationships if r is not None]:
+            target.add_entity(relationship.entity_1)
+            target.add_entity(relationship.entity_2)
+            target.relationships.append(relationship)
+
+    def add_graph(self, graph, target=None):
+        target = self if target is None else target
+
+        if target.id != self.id:
+            for relationship in self.relationships:
+                target.add_relationship(relationship, target=target)
+
+        for isolate in graph.isolates:
+            target.add_entity(graph.entities[isolate], target=target)
+
+        for relationship in graph.relationships:
+            target.add_relationship(relationship, target=target)
+
+        print("NAMSAPCE MPA", graph.namespace_map is not None and len(graph.namespace_map) > 0)
+        if graph.namespace_map is not None and len(graph.namespace_map) > 0:
+            target.namespace_map.update(graph.namespace_map)
+
+        return target
+
+    def subtract_entity(self, entity):
+        if len(entity.graph.relationships) == 0 and len(entity.graph.entities) == 1:
+            del self._entities[entity.core_id]
         else:
-            self._rel_type = rel_type.string if type(rel_type) == RelationType else rel_type.upper()
+            self.subtract_graph(entity.graph)
+        return self
 
-        self._flatten()
+    def subtract_relationship(self, relationship):
+        # if relationship.id in self._relationships.keys():
+        #     return  # TODO: throw warnings somewhere
+        #
+        # if len() > 0:
+        #     return
+        pass
 
-    def __repr__(self):
-        return repr(self.toDict())
+    def subtract_graph(self, graph):
+        pass
 
-    def __str__(self):
-        return str(self.toDict())
+    def operation_resolution(self, other, operation, direction):
+        if operation == GraphOperation.ADD:
+            operator = "+"
+            if direction == GraphOperationDirection.GRAPH_ENTITY:
+                self.add_entity(other)
+                return self
+            if direction == GraphOperationDirection.GRAPH_RELATIONSHIP:
+                self.add_relationship(other)
+                return self
+            if direction == GraphOperationDirection.GRAPH_GRAPH:
+                return self.add_graph(other, target=Graph(Graph.NAMESPACE_DELIMITER))
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name,
+                                                                                            other=type(other).__name))
+
+        if operation == GraphOperation.SUB:
+            operator = "-"
+            if direction == GraphOperationDirection.GRAPH_ENTITY:
+                self.subtract_entity(other)
+                return self
+            if direction == GraphOperationDirection.GRAPH_RELATIONSHIP:
+                self.subtract_relationship(other)
+                return self
+            if direction == GraphOperationDirection.GRAPH_GRAPH:
+                self.subtract_graph(other)
+                return self
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name,
+                                                                                            other=type(other).__name))
 
     def toDict(self):
-        return dict(__entities={k: v.toDict() for k, v in self._entities_refs.items()},
-                    __relationships=self.relationships,
+        return dict(__entities=self._entities,  # {k: v.toDict() for k, v in .items()},
+                    __relationships=[r.toDict() for r in self.relationships],
                     __namespace_map=self.namespace_map)
+
+    def search_relationships(self, **kwargs):
+        # Defaults for search arguments: name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL
+        search_arguments = {k: v for k, v in kwargs.items() if v != DefaultValues.RELATIONSHIP.value[k]}
+        print(search_arguments)
+
+    def search_entities(self, **kwargs):
+        # Defaults for search arguments: entity_type=None, core_id=None, encoding=None, key=None, name=None, data=None,
+        #   ttl=-1
+        search_arguments = {k: v for k, v in kwargs.items() if v != DefaultValues.RELATIONSHIP.value[k]}
+        print(search_arguments)
+
+    @staticmethod
+    def erase(self, obj):
+        if issubclass(type(obj), BaseEntity):
+            found = [k for k, e in self.entities.value_collection.items() if id(e) == id(obj)]
+            if len(found) > 0:
+                value = self.entities.get(found[0])()
+                del value
+                del self.entities[found[0]]
+
+        if issubclass(type(obj), BaseRelationship):
+            found = [r for r in self.relationships.value_collection if id(r) == id(obj)]
+            if len(found) > 0:
+                value = self.relationships.get(found[0])()
+                del value
+                del self.relationships[found[0]]
+
+    def clear(self):
+        self.entities.clear()
+        self.relationships.clear()
+        self._namespace_map = {}
