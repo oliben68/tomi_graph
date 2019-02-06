@@ -67,10 +67,6 @@ class BaseGraph(ABC, Core):
         pass
 
     @abstractmethod
-    def toDict(self):
-        raise NotImplementedError
-
-    @abstractmethod
     def search_relationships(self, **kwargs):
         raise NotImplementedError
 
@@ -86,3 +82,8 @@ class BaseGraph(ABC, Core):
     @abstractmethod
     def clear(self):
         raise NotImplementedError
+
+    def toDict(self):
+        return dict(__entities=self.entities,  # {k: v.toDict() for k, v in .items()},
+                    __relationships=[r.toDict() for r in self.relationships],
+                    __namespace_map=self.namespace_map)
