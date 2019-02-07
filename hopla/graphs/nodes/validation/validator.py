@@ -2,10 +2,10 @@ import warnings
 
 from jsonschema import validate, ValidationError
 
-from hopla.graphs.entities.exceptions import SchemaValidationException, SchemaValidationWarning
+from hopla.graphs.nodes.exceptions import SchemaValidationException, SchemaValidationWarning
 from hopla.events import dispatcher
 from hopla.events.signals import Signals
-from hopla.graphs.entities.validation.core.validator import BaseValidator
+from hopla.graphs.nodes.validation.core.validator import BaseValidator
 
 
 class Validator(BaseValidator):

@@ -13,9 +13,9 @@ from py._path.local import LocalPath
 
 from hopla.graphs.operators import GraphOperationDirection, GraphOperation
 from hopla.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.graphs.entities.core import BUILT_INS, DEFAULT_ENCODING
-from hopla.graphs.entities.core.entity import BaseEntity
-from hopla.graphs.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.graphs.nodes.core import BUILT_INS, DEFAULT_ENCODING
+from hopla.graphs.nodes.core.node import BaseNode
+from hopla.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
 from hopla.events import dispatcher
 from hopla.events.signals import Signals
 from hopla.graphs.graphs.graph import Graph
@@ -24,7 +24,7 @@ from hopla.graphs.relationships.core import Direction
 from hopla.graphs.relationships.relationship import Relationship
 
 
-class Entity(OperatorsResolver, BaseEntity):
+class Node(OperatorsResolver, BaseNode):
     @property
     def entity_type(self):
         return self._entity_type
@@ -157,7 +157,7 @@ class Entity(OperatorsResolver, BaseEntity):
         :param options:
         :raise_event:
         """
-        self._entity_type = Entity.__name__ if entity_type is None else str(entity_type)
+        self._entity_type = Node.__name__ if entity_type is None else str(entity_type)
         self._core_id = uuid.uuid4().hex if core_id is None else str(core_id)
         self._encoding = DEFAULT_ENCODING if type(encoding) != str else encoding
         self._key = key
@@ -191,7 +191,7 @@ class Entity(OperatorsResolver, BaseEntity):
         self._new = False
 
     def __str__(self):
-        return BaseEntity.serialize_to_string(self.toDict())  # dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
+        return BaseNode.serialize_to_string(self.toDict())  # dumps(self.toDict(), **(dict(indent=4, sort_keys=True)))
 
     def __eq__(self, other):
         return str(self) == str(other)
@@ -212,7 +212,7 @@ class Entity(OperatorsResolver, BaseEntity):
                     "__create_date": d.create_date,
                     "__update_date": d.update_date,
                     "__ttl": d.ttl,
-                    "__data": Entity._to_dict(d.get_data()),
+                    "__data": Node._to_dict(d.get_data()),
                 }
             }
 
@@ -222,31 +222,31 @@ class Entity(OperatorsResolver, BaseEntity):
             _ = iter(o)
             if issubclass(type(o), dict) or type(o) == dict:
                 for k, v in o.items():
-                    if issubclass(type(v), BaseEntity):
+                    if issubclass(type(v), BaseNode):
                         o[k] = dict_format(v)
                     else:
-                        o[k] = Entity._to_dict(v)
+                        o[k] = Node._to_dict(v)
             elif issubclass(type(o), list) or type(o) == list:
                 for idx, v in enumerate(o):
-                    if issubclass(type(v), BaseEntity):
+                    if issubclass(type(v), BaseNode):
                         o[idx] = dict_format(v)
                     else:
-                        o[idx] = Entity._to_dict(v)
+                        o[idx] = Node._to_dict(v)
             return o
         except TypeError:
-            if issubclass(type(o), BaseEntity):
+            if issubclass(type(o), BaseNode):
                 return dict_format(o)
             else:
                 return o
 
     def children(self):
         tree = Tree(loads(str(self)))
-        return [Entity.from_str(dumps(d["__object"])) for d in
+        return [Node.from_str(dumps(d["__object"])) for d in
                 list(tree.execute('$..*[@.__type and @.__object]')) if
                 d["__object"]["__id"] != self.core_id]
 
     def toDict(self):
-        return Entity._to_dict(deepcopy(self))
+        return Node._to_dict(deepcopy(self))
 
     def clone(self, new=None, raise_event=True):
         cloned = deepcopy(self)
@@ -267,18 +267,18 @@ class Entity(OperatorsResolver, BaseEntity):
         o = loads(string_value)
 
         if type(o) == dict and {"__type", "__object"} == set(o.keys()):
-            return Entity.from_str(dumps(o["__object"]), new=new_instance)
+            return Node.from_str(dumps(o["__object"]), new=new_instance)
 
         if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
                                 "__data", "__ttl"} == set(o.keys()):
             core_id = str(uuid.uuid4()) if new_instance else o["__id"]
-            doc = Entity(o["__data"], core_id=core_id,
-                         encoding=o["__encoding"], key=o["__key"], name=o["__name"])
+            doc = Node(o["__data"], core_id=core_id,
+                       encoding=o["__encoding"], key=o["__key"], name=o["__name"])
 
             if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
-                doc.set_data(Entity.from_str(dumps(o["__data"]["__object"]), new=new_instance))
+                doc.set_data(Node.from_str(dumps(o["__data"]["__object"]), new=new_instance))
             else:
-                doc.set_data(Entity.from_str(dumps(o["__data"])))
+                doc.set_data(Node.from_str(dumps(o["__data"])))
 
             doc._create_date = int(datetime.utcnow().timestamp()) if new_instance else o["__create_date"]
             doc._update_date = doc._create_date if new_instance else o["__update_date"]
@@ -288,10 +288,10 @@ class Entity(OperatorsResolver, BaseEntity):
 
         if type(o) == dict and {"__id", "__name", "__key", "__encoding", "__create_date", "__update_date",
                                 "__data", "__ttl"} != set(o.keys()):
-            return {k: Entity.from_str(dumps(v), new=new_instance) for k, v in o.items()}
+            return {k: Node.from_str(dumps(v), new=new_instance) for k, v in o.items()}
 
         if type(o) == list:
-            return [Entity.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
+            return [Node.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
         return o
 
     def __repr__(self):

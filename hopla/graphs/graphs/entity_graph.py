@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from objectpath import Tree
 
-from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.nodes.core.node import BaseNode
 from hopla.graphs.graphs.graph import Graph
 from hopla.graphs.relationships.core import RelationType, Protection, NULL_VAL
 from hopla.graphs.relationships.relationship import Relationship
@@ -17,7 +17,7 @@ class EntityGraph(Graph):
     def _flatten(self):
 
         def to_id(d):
-            if issubclass(type(d), BaseEntity):
+            if issubclass(type(d), BaseNode):
                 return {
                     "__type": d.entity_type,
                     "__id": d.core_id
@@ -33,7 +33,7 @@ class EntityGraph(Graph):
                 for idx, v in enumerate(d):
                     d[idx] = to_id(v)
                     swap_with_id(v)
-            elif issubclass(type(d), BaseEntity):
+            elif issubclass(type(d), BaseNode):
                 self._entities[d.core_id] = d
                 d_data = d.get_data()
                 if type(d_data) == tuple:
@@ -81,7 +81,7 @@ class EntityGraph(Graph):
             elif issubclass(type(d), list) or type(d) == list:
                 for idx, v in enumerate(d):
                     d[idx] = swap_with_doc(to_doc(v))
-            elif issubclass(type(d), BaseEntity):
+            elif issubclass(type(d), BaseNode):
                 d_data = d.get_data()
                 if type(d_data) == tuple:
                     # some ugliness to bypass issues with the immutable nature of tuples
@@ -104,8 +104,8 @@ class EntityGraph(Graph):
 
     @entity.setter
     def entity(self, value):
-        if not issubclass(type(value), BaseEntity):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseEntity.__name__))
+        if not issubclass(type(value), BaseNode):
+            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseNode.__name__))
         self._doc = value
         self._relationships = []
         self._entities = {}
@@ -162,8 +162,8 @@ class EntityGraph(Graph):
         :param rel_type:
         :param do_not_clone:
         """
-        if not issubclass(type(doc), BaseEntity):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseEntity.__name__))
+        if not issubclass(type(doc), BaseNode):
+            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseNode.__name__))
         self._id = str(uuid4())
         self._doc = doc if do_not_clone else deepcopy(doc)
         self._relationships = []

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from hopla.graphs.category import Category
+from hopla.graphs.core import Category
 from hopla.graphs.relationships.core import NULL_VAL
 
 
@@ -14,12 +14,12 @@ def xor_categories(s, o):
 
 class GraphOperationDirection(Enum):
     # CategorySelf_CategoryOther = CategorySelf ^ reverse(CategoryOther)
-    ENTITY_ENTITY = xor_categories(Category.ENTITY, Category.ENTITY)  # 1073741826
-    ENTITY_RELATIONSHIP = xor_categories(Category.ENTITY, Category.RELATIONSHIP)  # 536870914
+    ENTITY_ENTITY = xor_categories(Category.NODE, Category.NODE)  # 1073741826
+    ENTITY_RELATIONSHIP = xor_categories(Category.NODE, Category.RELATIONSHIP)  # 536870914
     RELATIONSHIP_RELATIONSHIP = xor_categories(Category.RELATIONSHIP, Category.RELATIONSHIP)  # 536870916
-    RELATIONSHIP_ENTITY = xor_categories(Category.RELATIONSHIP, Category.ENTITY)  # 1073741828
+    RELATIONSHIP_ENTITY = xor_categories(Category.RELATIONSHIP, Category.NODE)  # 1073741828
     GRAPH_GRAPH = xor_categories(Category.GRAPH, Category.GRAPH)
-    GRAPH_ENTITY = xor_categories(Category.GRAPH, Category.ENTITY)
+    GRAPH_ENTITY = xor_categories(Category.GRAPH, Category.NODE)
     GRAPH_RELATIONSHIP = xor_categories(Category.GRAPH, Category.RELATIONSHIP)
     SELF_ASSIGNMENT = 0
     NOT_FOUND = None

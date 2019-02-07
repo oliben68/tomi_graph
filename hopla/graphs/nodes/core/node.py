@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 from ujson import dumps
 
-from hopla.graphs.category import Category
-from hopla.graphs.core import Core
-from hopla.graphs.entities.validation.validator import BaseValidator
+from hopla.graphs.core import Core, Category
+from hopla.graphs.nodes.validation.validator import BaseValidator
 
 
-class BaseEntity(ABC, Core):
-    category = Category.ENTITY
+class BaseNode(ABC, Core):
+    category = Category.NODE
 
     @property
     @abstractmethod
