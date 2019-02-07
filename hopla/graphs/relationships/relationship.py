@@ -6,7 +6,7 @@ from hopla.graphs.graphs.graph import Graph
 
 from hopla.graphs.operators import GraphOperationDirection, GraphOperation
 from hopla.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.nodes.core.node import BaseNode
 from hopla.graphs.relationships.core import Direction, RelationType, Protection
 from hopla.graphs.relationships.core.relationship import BaseRelationship
 from hopla.graphs.relationships.exceptions import CoreRelationshipException
@@ -87,7 +87,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 return v.name
             elif type(v) == weakref.ReferenceType:
                 entity = v()
-                return entity.toDict() if issubclass(type(entity), BaseEntity) else None
+                return entity.toDict() if issubclass(type(entity), BaseNode) else None
             else:
                 return v
 

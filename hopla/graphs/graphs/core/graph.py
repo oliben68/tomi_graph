@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
-from hopla.graphs.category import Category
-from hopla.graphs.core import Core
+from hopla.graphs.core import Core, Category
 
 
 class BaseGraph(ABC, Core):

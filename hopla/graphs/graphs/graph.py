@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from hopla.graphs.operators import GraphOperationDirection, GraphOperation, DefaultValues
 from hopla.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.nodes.core.node import BaseNode
 from hopla.graphs.graphs.core.graph import BaseGraph
 from hopla.graphs.relationships.core.relationship import BaseRelationship
 
@@ -141,7 +141,7 @@ class Graph(OperatorsResolver, BaseGraph):
 
     @staticmethod
     def erase(self, obj):
-        if issubclass(type(obj), BaseEntity):
+        if issubclass(type(obj), BaseNode):
             found = [k for k, e in self.entities.value_collection.items() if id(e) == id(obj)]
             if len(found) > 0:
                 value = self.entities.get(found[0])()
