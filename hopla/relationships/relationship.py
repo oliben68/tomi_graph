@@ -3,20 +3,39 @@ import weakref
 from enum import Enum
 from uuid import uuid4
 
+from hopla.graphs.graph import Graph
+
+from hopla.base.graph import GraphOperation, GraphOperationDirection
+from hopla.base.graph.operator_resolver import OperatorsResolver
 from hopla.entities.core.entity import BaseEntity
-from hopla.relationships.core import Direction, Protection, RelationType, NULL_VALUE
+from hopla.relationships.core import Direction, RelationType, Protection
 from hopla.relationships.core.relationship import BaseRelationship
-from hopla.relationships.finalizers import self_reset_finalizer, preserve_entity_finalizer
+from hopla.relationships.exceptions import CoreRelationshipException
 
 
-class Relationship(BaseRelationship):
+class Relationship(OperatorsResolver, BaseRelationship):
     @property
     def id(self):
         return self._id
 
     @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        if type(value) == str:
+            self._name = value
+        else:
+            raise CoreRelationshipException("name property is of type str!")
+
+    @property
     def data(self):
         return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
 
     @property
     def rel_type(self):
@@ -52,46 +71,12 @@ class Relationship(BaseRelationship):
     def protection(self):
         return self._protection
 
-    @property
-    def safe(self):
-        return self._safe
-
-    @property
-    def on_gc_collect(self):
-        return self._on_gc_collect
-
-    def wire_protection(self):
-        self._refs.clear()
-        # on_gc_collect has predominance over protection
-        if callable(self.on_gc_collect) and {'args', 'kwargs'}.issubset(
-                set(inspect.getcallargs(self.on_gc_collect).keys())):
-            self._refs['entity_1'] = weakref.finalize(self.entity_1, self.on_gc_collect, relationship=self)
-            self._refs['entity_2'] = weakref.finalize(self.entity_2, self.on_gc_collect, relationship=self)
-        else:
-            if self._protection == Protection.CASCADE_DELETE:
-                self._refs['entity_1'] = weakref.finalize(self.entity_1, self_reset_finalizer, relationship=self)
-                self._refs['entity_2'] = weakref.finalize(self.entity_2, self_reset_finalizer, relationship=self)
-            elif self._protection == Protection.PRESERVE:
-                self._refs['entity_1'] = weakref.finalize(self.entity_1, preserve_entity_finalizer,
-                                                          relationship=self, safe=self._safe, property="entity_1",
-                                                          value=self.entity_1.toDict())
-                self._refs['entity_2'] = weakref.finalize(self.entity_2, preserve_entity_finalizer,
-                                                          relationship=self, safe=self._safe, property="entity_2",
-                                                          value=self.entity_2.toDict())
-
-    def __init__(self, entity_1, entity_2, rel_type=None, direction=None, protection=None, on_gc_collect=None,
-                 **kwargs):
+    def __init__(self, entity_1, entity_2, name=None, rel_type=None, direction=None, protection=None, **kwargs):
         self._id = str(uuid4())
-
+        self._name = self._id if name is None else str(name)
         self._entity_1 = weakref.ref(entity_1)
         self._entity_2 = weakref.ref(entity_2)
-
         self._protection = protection if type(protection) == Protection else Protection.NONE
-        self._on_gc_collect = on_gc_collect
-        self._refs = {}
-        self._safe = {}
-        self.wire_protection()
-
         self._rel_type = Relationship.__name__.upper() if rel_type is None or type(
             rel_type) != str else rel_type.upper()
         self._direction = direction if type(direction) == Direction else Direction.NONE
@@ -103,27 +88,24 @@ class Relationship(BaseRelationship):
                 return v.name
             elif type(v) == weakref.ReferenceType:
                 entity = v()
-                return entity if issubclass(type(entity), BaseEntity) else None
+                return entity.toDict() if issubclass(type(entity), BaseEntity) else None
             else:
                 return v
 
         return {"_" + k: value(v) for k, v in self.__dict__.items()}
 
     def __repr__(self):
+
         return repr(self.toDict())
 
     def __str__(self):
         return str(self.toDict())
 
-    def __call__(self, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VALUE):
-        if on_gc_collect != NULL_VALUE:
-            self._on_gc_collect = on_gc_collect
+    def __call__(self, name=None, rel_type=None, data=None):
         self._rel_type = self._rel_type if rel_type is None or type(rel_type) not in [
             str, RelationType] else rel_type.upper()
-        if self._protection != protection:
-            self._protection = protection if type(protection) == Protection else self._protection
-            self.wire_protection()
-        self._data = data if data is None else data
+        self._data = data if data is None else self._data
+        self._name = name if type(name) == str else self._name
 
         return self
 
@@ -133,7 +115,74 @@ class Relationship(BaseRelationship):
         self._entity_2 = None
         self._safe = {}
         self._direction = Direction.NONE
-        self(rel_type=RelationType.NONE, protection=Protection.NONE, data={}, on_gc_collect=None)
+        self(name=None, rel_type=RelationType.NONE, data={})
 
-    def __add__(self, other):
-        return Relationship(self.entity_2, other.entity_1)
+    def operation_resolution(self, other, operation, direction):
+        if operation == GraphOperation.LINK:
+            operator = "-"
+            if direction == GraphOperationDirection.RELATIONSHIP_ENTITY:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self.entity_1)
+                graph.add_entity(self.entity_2)
+                graph.add_entity(other)
+                graph.add_relationship(self)
+                graph.add_relationship(Relationship(self.entity_2, other))
+                return graph
+            if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_relationship(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self.entity_2, other.entity_1))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name))
+        if operation == GraphOperation.LINK_LEFT_RIGHT:
+            operator = ">"
+            if direction == GraphOperationDirection.RELATIONSHIP_ENTITY:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self.entity_1)
+                graph.add_entity(self.entity_2)
+                graph.add_entity(other)
+                graph.add_relationship(self)
+                graph.add_relationship(Relationship(self.entity_2, other, direction=Direction.LEFT_TO_RIGHT))
+                return Graph
+            if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self.entity_1)
+                graph.add_entity(self.entity_2)
+                graph.add_entity(other.entity_1)
+                graph.add_entity(other.entity_2)
+                graph.add_relationship(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self.entity_2, other.entity_1, direction=Direction.LEFT_TO_RIGHT))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name))
+        if operation == GraphOperation.LINK_RIGHT_LEFT:
+            operator = "<"
+            if direction == GraphOperationDirection.RELATIONSHIP_ENTITY:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self.entity_1)
+                graph.add_entity(self.entity_2)
+                graph.add_entity(other)
+                graph.add_relationship(self)
+                graph.add_relationship(Relationship(self.entity_2, other, direction=Direction.RIGHT_TO_LEFT))
+                return graph
+            if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
+                graph = Graph(Graph.NAMESPACE_DELIMITER)
+                graph.add_entity(self.entity_1)
+                graph.add_entity(self.entity_2)
+                graph.add_entity(other.entity_1)
+                graph.add_entity(other.entity_2)
+                graph.add_relationship(self)
+                graph.add_relationship(other)
+                graph.add_relationship(Relationship(self.entity_2, other.entity_1, direction=Direction.RIGHT_TO_LEFT))
+                return graph
+            raise TypeError(
+                "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
+                                                                                            self=type(self).__name,
+                                                                                            other=type(other).__name))

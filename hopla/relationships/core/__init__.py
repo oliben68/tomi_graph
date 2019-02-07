@@ -32,4 +32,4 @@ class Protection(Enum):
     NONE = None
 
 
-NULL_VALUE = uuid4()
+NULL_VAL = uuid4()

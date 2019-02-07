@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 from ujson import dumps
 
+from hopla.base.graph import Category
+from hopla.base.graph.core import Core
 from hopla.validation.validator import BaseValidator
 
 
-class BaseEntity(ABC):
+class BaseEntity(ABC, Core):
+    category = Category.ENTITY
+
     @property
     @abstractmethod
     def entity_type(self):
@@ -131,21 +135,4 @@ class BaseEntity(ABC):
     @abstractmethod
     def __init__(self, *args, entity_type=None, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
                  validator=None, options=None, raise_event=None):
-        raise NotImplementedError
-
-    # relationships operators
-
-    # creates relationship [self - other] without any direction
-    @abstractmethod
-    def __sub__(self, other):
-        raise NotImplementedError
-
-    # creates relationship [self > other] Left to Right direction
-    @abstractmethod
-    def __gt__(self, other):
-        raise NotImplementedError
-
-    # creates relationship [self < other] Right to Left direction
-    @abstractmethod
-    def __lt__(self, other):
         raise NotImplementedError
