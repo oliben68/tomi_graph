@@ -1,9 +1,9 @@
-from hopla.graphs.graph import Graph
+from hopla.graphs.graphs.graph import Graph
 
-from hopla.entities.entity import Entity
-from hopla.graphs.entity_graph import EntityGraph
-from hopla.relationships.core import Direction
-from hopla.relationships.relationship import Relationship
+from hopla.graphs.entities.entity import Entity
+from hopla.graphs.graphs.entity_graph import EntityGraph
+from hopla.graphs.relationships.core import Direction
+from hopla.graphs.relationships.relationship import Relationship
 
 
 def test_graph():

@@ -1,10 +1,10 @@
 from uuid import uuid4
 
-from hopla.base.graph import GraphOperation, GraphOperationDirection, DefaultValues
-from hopla.base.graph.operator_resolver import OperatorsResolver
-from hopla.entities.core.entity import BaseEntity
-from hopla.graphs.core.graph import BaseGraph
-from hopla.relationships.core.relationship import BaseRelationship
+from hopla.graphs.operators import GraphOperationDirection, GraphOperation, DefaultValues
+from hopla.graphs.operators.operator_resolver import OperatorsResolver
+from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.graphs.core.graph import BaseGraph
+from hopla.graphs.relationships.core.relationship import BaseRelationship
 
 
 class Graph(OperatorsResolver, BaseGraph):

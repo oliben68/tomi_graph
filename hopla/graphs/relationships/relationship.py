@@ -1,16 +1,15 @@
-import inspect
 import weakref
 from enum import Enum
 from uuid import uuid4
 
-from hopla.graphs.graph import Graph
+from hopla.graphs.graphs.graph import Graph
 
-from hopla.base.graph import GraphOperation, GraphOperationDirection
-from hopla.base.graph.operator_resolver import OperatorsResolver
-from hopla.entities.core.entity import BaseEntity
-from hopla.relationships.core import Direction, RelationType, Protection
-from hopla.relationships.core.relationship import BaseRelationship
-from hopla.relationships.exceptions import CoreRelationshipException
+from hopla.graphs.operators import GraphOperationDirection, GraphOperation
+from hopla.graphs.operators.operator_resolver import OperatorsResolver
+from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.relationships.core import Direction, RelationType, Protection
+from hopla.graphs.relationships.core.relationship import BaseRelationship
+from hopla.graphs.relationships.exceptions import CoreRelationshipException
 
 
 class Relationship(OperatorsResolver, BaseRelationship):

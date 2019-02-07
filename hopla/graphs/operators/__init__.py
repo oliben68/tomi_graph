@@ -1,6 +1,7 @@
 from enum import Enum
 
-from hopla.relationships.core import NULL_VAL
+from hopla.graphs.category import Category
+from hopla.graphs.relationships.core import NULL_VAL
 
 
 def reverse(n):
@@ -9,15 +10,6 @@ def reverse(n):
 
 def xor_categories(s, o):
     return s.value ^ reverse(o.value)
-
-
-class Category(Enum):
-    NONE = 0
-    _CORE = 1
-    ENTITY = 2
-    RELATIONSHIP = 4
-    INDEX = 8
-    GRAPH = 16
 
 
 class GraphOperationDirection(Enum):

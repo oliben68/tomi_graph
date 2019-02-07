@@ -1,4 +1,4 @@
-from hopla.base.graph import Category
+from hopla.graphs.category import Category
 
 
 class Core(object):

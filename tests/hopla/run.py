@@ -1,24 +1,12 @@
-import warnings
-from ujson import dumps
-from uuid import uuid4
-
 # import pytest
 # from pydispatch import dispatcher
-from testfixtures import LogCapture
 
-from hopla.entities.core import DEFAULT_ENCODING
-from hopla.entities.entity import Entity
-from hopla.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
-    SchemaValidationWarning, SchemaValidationException
-from hopla.events.dispatcher import connect_handler, disconnect_handler
-from hopla.events.exceptions import HandlerArgsCountException
-from hopla.events.signals import Signals
+from hopla.graphs.entities.entity import Entity
 
-from hopla.graphs.graph import Graph
-from hopla.relationships.relationship import Relationship
-from hopla.validation.validator import Validator
+from hopla.graphs.graphs.graph import Graph
+from hopla.graphs.relationships.relationship import Relationship
 
-from hopla.collections import flatten, expand
+from hopla.collections import flatten
 
 e1 = Entity("E1", core_id="E1")
 e2 = Entity("E2", core_id="E2")

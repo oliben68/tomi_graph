@@ -5,10 +5,10 @@ from uuid import uuid4
 
 from objectpath import Tree
 
-from hopla.entities.core.entity import BaseEntity
-from hopla.graphs.graph import Graph
-from hopla.relationships.core import RelationType, Protection, NULL_VAL
-from hopla.relationships.relationship import Relationship
+from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.graphs.graph import Graph
+from hopla.graphs.relationships.core import RelationType, Protection, NULL_VAL
+from hopla.graphs.relationships.relationship import Relationship
 
 
 class EntityGraph(Graph):

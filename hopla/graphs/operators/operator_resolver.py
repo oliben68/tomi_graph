@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from hopla.base.graph import GraphOperation, GraphOperationDirection, direction_from_val, xor_categories
+from hopla.graphs.operators import xor_categories, GraphOperationDirection, GraphOperation, direction_from_val
 
 
 class OperatorsResolver(ABC):
