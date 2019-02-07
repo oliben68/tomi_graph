@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from ujson import dumps
 
-from hopla.base.graph import Category
-from hopla.base.graph.core import Core
-from hopla.validation.validator import BaseValidator
+from hopla.graphs.category import Category
+from hopla.graphs.core import Core
+from hopla.graphs.entities.validation.validator import BaseValidator
 
 
 class BaseEntity(ABC, Core):

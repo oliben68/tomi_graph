@@ -7,22 +7,21 @@ from io import TextIOBase
 from ujson import loads, load, dumps
 
 import chardet
-from hopla.graphs.entity_graph import EntityGraph
+from hopla.graphs.graphs.entity_graph import EntityGraph
 from objectpath import Tree
 from py._path.local import LocalPath
 
-from hopla.base.graph import GraphOperation, GraphOperationDirection
-from hopla.base.graph.operator_resolver import OperatorsResolver
-from hopla.entities.core import BUILT_INS
-from hopla.entities.core import DEFAULT_ENCODING
-from hopla.entities.core.entity import BaseEntity
-from hopla.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.graphs.operators import GraphOperationDirection, GraphOperation
+from hopla.graphs.operators.operator_resolver import OperatorsResolver
+from hopla.graphs.entities.core import BUILT_INS, DEFAULT_ENCODING
+from hopla.graphs.entities.core.entity import BaseEntity
+from hopla.graphs.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
 from hopla.events import dispatcher
 from hopla.events.signals import Signals
-from hopla.graphs.graph import Graph
+from hopla.graphs.graphs.graph import Graph
 from hopla.logging.auto.logging import auto_log
-from hopla.relationships.core import Direction
-from hopla.relationships.relationship import Relationship
+from hopla.graphs.relationships.core import Direction
+from hopla.graphs.relationships.relationship import Relationship
 
 
 class Entity(OperatorsResolver, BaseEntity):

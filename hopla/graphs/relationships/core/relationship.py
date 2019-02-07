@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
-from hopla.base.graph import Category
+from hopla.graphs.category import Category
 
-from hopla.base.graph.core import Core
+from hopla.graphs.core import Core
 
 
 class BaseRelationship(Core, ABC):

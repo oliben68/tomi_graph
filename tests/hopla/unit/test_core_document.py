@@ -6,16 +6,16 @@ import pytest
 from pydispatch import dispatcher
 from testfixtures import LogCapture
 
-from hopla.entities.core import DEFAULT_ENCODING
-from hopla.entities.entity import Entity
-from hopla.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
+from hopla.graphs.entities.core import DEFAULT_ENCODING
+from hopla.graphs.entities.entity import Entity
+from hopla.graphs.entities.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
     SchemaValidationWarning, SchemaValidationException
 from hopla.events.dispatcher import connect_handler, disconnect_handler
 from hopla.events.exceptions import HandlerArgsCountException
 from hopla.events.signals import Signals
 from hopla.logging import create_logger
 from hopla.logging.auto.logging import auto_log
-from hopla.validation.validator import Validator
+from hopla.graphs.entities.validation.validator import Validator
 
 globals()["cache"] = {}
 
