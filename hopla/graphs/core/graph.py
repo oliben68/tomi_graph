@@ -84,6 +84,6 @@ class BaseGraph(ABC, Core):
         raise NotImplementedError
 
     def toDict(self):
-        return dict(__entities=self.entities,  # {k: v.toDict() for k, v in .items()},
+        return dict(__entities={k: v.toDict() for k, v in self.entities.items()},
                     __relationships=[r.toDict() for r in self.relationships],
                     __namespace_map=self.namespace_map)

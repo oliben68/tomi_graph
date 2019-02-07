@@ -162,8 +162,25 @@ if [ -d /metrics ]; then
     NEO4J_dbms_directories_metrics="/metrics"
 fi
 
-# set the neo4j initial password only if you run the database server
+# set the neo4j initial password
 bin/neo4j-admin set-initial-password "123456"
+
+#if [ "${cmd}" == "neo4j" ]; then
+#    if [ "${NEO4J_AUTH:-}" == "none" ]; then
+#        NEO4J_dbms_security_auth__enabled=false
+#    elif [[ "${NEO4J_AUTH:-}" == neo4j/* ]]; then
+#        password="${NEO4J_AUTH#neo4j/}"
+#        if [ "${password}" == "neo4j" ]; then
+#            echo >&2 "Invalid value for password. It cannot be 'neo4j', which is the default."
+#            exit 1
+#        fi
+#        # Will exit with error if users already exist (and print a message explaining that)
+#        bin/neo4j-admin set-initial-password "${password}" || true
+#    elif [ -n "${NEO4J_AUTH:-}" ]; then
+#        echo >&2 "Invalid value for NEO4J_AUTH: '${NEO4J_AUTH}'"
+#        exit 1
+#    fi
+#fi
 
 # list env variables with prefix NEO4J_ and create settings from them
 unset NEO4J_AUTH NEO4J_SHA256 NEO4J_TARBALL
