@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from testfixtures import LogCapture
 
-from hopla_graph.graphs.nodes.core import DEFAULT_ENCODING
-from hopla_graph.graphs.nodes.node import Node
-from hopla_graph.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
-from hopla_graph.shared.logging import create_logger
-from hopla_graph.shared.logging.auto.logging import auto_log
+from hopla.base.graphs.nodes.core import DEFAULT_ENCODING
+from hopla.base.graphs.nodes.node import Node
+from hopla.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.base.shared.logging import create_logger
+from hopla.base.shared.logging.auto.logging import auto_log
 
 globals()["cache"] = {}
 

@@ -1,6 +1,6 @@
-from hopla_graph.graphs.nodes.node import Node
-from hopla_graph.persistency.dal.neo4j.cypher_operations import CypherOperations
-from hopla_graph.persistency.generators.neo4j.node_commands import NodeCommands
+from hopla.base.graphs.nodes.node import Node
+from hopla.base.persistency.dal.neo4j.cypher_operations import CypherOperations
+from hopla.base.persistency.generators.neo4j.node_commands import NodeCommands
 
 n1 = Node({"test": {"value": "ABC"}})
 CypherOperations.create_node(n1)
