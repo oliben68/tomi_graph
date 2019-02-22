@@ -1,5 +1,5 @@
 package:
-    name: hopla
+    name: hopla_graph
     version: 0.0.1
     configuration_pkg: config
     tests: pytest

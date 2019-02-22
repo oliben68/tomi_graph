@@ -1,13 +1,13 @@
-from hopla.graphs.graphs.graph import Graph
+from hopla_graph.graphs.graphs.graph import Graph
 
-from hopla.graphs.nodes.node import Node
-from hopla.graphs.graphs.entity_graph import EntityGraph
-from hopla.graphs.relationships.core import Direction
-from hopla.graphs.relationships.relationship import Relationship
+from hopla_graph.graphs.nodes.node import Node
+from hopla_graph.graphs.graphs.node_data_graph import NodeDataGraph
+from hopla_graph.graphs.relationships.core import Direction
+from hopla_graph.graphs.relationships.relationship import Relationship
 
 
 def test_graph():
-    assert EntityGraph(Node())
+    assert NodeDataGraph(Node())
 
 
 def test_complex_graph():
@@ -23,12 +23,12 @@ def test_complex_graph():
     g = root.graph
 
     assert len(g.relationships) == 5
-    assert g.entity.core_id == root.core_id
-    assert g.entity != root
-    assert len(g.entities) == len(ids)
+    assert g.root_node.core_id == root.core_id
+    assert g.root_node != root
+    assert len(g.nodes) == len(ids)
     assert len(g.relationships) == len(ids) - 1
     assert g.graph
-    assert len(g.graph["__entities"]) == len(ids)
+    assert len(g.graph["__nodes"]) == len(ids)
     assert len(g.graph["__relationships"]) == len(ids) - 1
     assert len(g.namespace_map) == len(ids)
 
@@ -39,8 +39,8 @@ def test_relationship():
 
     rel = Relationship(e_one, e_two)
 
-    assert rel.entity_1 == e_one
-    assert rel.entity_2 == e_two
+    assert rel.node_1 == e_one
+    assert rel.node_2 == e_two
     assert rel.rel_type == Relationship.__name__.upper()
     assert rel.data == {}
 
@@ -72,19 +72,19 @@ def test_link_multiple_operators():
     g1 = e1 - e2 - e3
 
     assert type(g1) == Graph
-    assert len(g1.entities) == 3
+    assert len(g1.nodes) == 3
     assert len(g1.relationships) == 2
 
     g2 = e1 > (e2 > e3)
 
     assert type(g2) == Graph
-    assert len(g2.entities) == 3
+    assert len(g2.nodes) == 3
     assert len(g2.relationships) == 2
 
     g3 = e1 < (e2 < e3)
 
     assert type(g3) == Graph
-    assert len(g3.entities) == 3
+    assert len(g3.nodes) == 3
     assert len(g3.relationships) == 2
 
     rel_first = e2 > e3
@@ -92,7 +92,7 @@ def test_link_multiple_operators():
 
     assert type(rel_first) == Relationship
     assert type(g4) == Graph
-    assert len(g4.entities) == 3
+    assert len(g4.nodes) == 3
     assert len(g4.relationships) == 2
 
 
@@ -108,7 +108,7 @@ def test_mix_types_operations():
     g5 = g1 + e4
     assert type(g5) == Graph
     assert e4.core_id in g5.isolates
-    assert len(g5.entities) == 4
+    assert len(g5.nodes) == 4
     assert len(g5.relationships) == 2
 
     r1 = e1 - e2
@@ -117,7 +117,7 @@ def test_mix_types_operations():
     assert type(g6) == Graph
     g6 = g6 + r1
     assert type(g6) == Graph
-    assert len(g6.entities) == 5
+    assert len(g6.nodes) == 5
     assert len(g6.relationships) == 3
 
     g7 = e1 - e2 - e3
@@ -127,7 +127,7 @@ def test_mix_types_operations():
     g9 = g7 + g8
     assert type(g9) == Graph
     assert len(g9.relationships) == len(g7.relationships) + len(g8.relationships)
-    assert set(g9.entities.keys()) == set(list(g7.entities.keys()) + list(g8.entities.keys()))
+    assert set(g9.nodes.keys()) == set(list(g7.nodes.keys()) + list(g8.nodes.keys()))
 
 
 def test_adding_entity_graph():
@@ -151,18 +151,19 @@ def test_adding_entity_graph():
     g3 = g1 + g2
     assert type(g3) == Graph
     assert len(g3.relationships) == len(g1.relationships) + len(g2.relationships)
-    assert set(g3.entities.keys()) == set(list(g1.entities.keys()) + list(g2.entities.keys()))
+    assert set(g3.nodes.keys()) == set(list(g1.nodes.keys()) + list(g2.nodes.keys()))
 
 
 def test_callable():
     e1 = Node("L1", core_id="L1")
     e2 = Node("R1", core_id="R1")
     rel = e1 - e2
-    rel(rel_type="TYPE", data=dict(a=2))
+    new_data = dict(a=2)
+    rel(rel_type="TYPE", data=new_data)
 
     assert type(rel) == Relationship
     assert rel.rel_type == "TYPE"
-    assert rel.data == dict()
+    assert rel.data == new_data
 
 
 def test_graph_methods():
@@ -172,10 +173,10 @@ def test_graph_methods():
 
     g = Graph(Graph.NAMESPACE_DELIMITER)
 
-    g.add_entity(e1)
+    g.add_node(e1)
     g.add_relationship(Relationship(e2, e3))
 
-    g_entities_count = len(g.entities)
+    g_entities_count = len(g.nodes)
     g_relationships_count = len(g.relationships)
     assert g_entities_count == 3
     assert g_relationships_count == 1
@@ -189,10 +190,10 @@ def test_graph_methods():
     g2.add_relationship(Relationship(e4, e5))
     g2.add_relationship(e5 - e6)
 
-    assert len(g2.entities) == 3
+    assert len(g2.nodes) == 3
     assert len(g2.relationships) == 2
 
     g.add_graph(g2)
 
-    assert len(g.entities) == len(g2.entities) + g_entities_count
+    assert len(g.nodes) == len(g2.nodes) + g_entities_count
     assert len(g.relationships) == len(g2.relationships) + g_relationships_count

@@ -1,2 +1,0 @@
-class HandlerArgsCountException(Exception):
-    pass

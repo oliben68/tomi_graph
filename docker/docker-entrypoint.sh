@@ -182,7 +182,7 @@ bin/neo4j-admin set-initial-password "123456"
 #    fi
 #fi
 
-# list env variables with prefix NEO4J_ and create settings from them
+# list env variables with prefix NEO4J_ and self_generate_create settings from them
 unset NEO4J_AUTH NEO4J_SHA256 NEO4J_TARBALL
 for i in $( set | grep ^NEO4J_ | awk -F'=' '{print $1}' | sort -rn ); do
     setting=$(echo ${i} | sed 's|^NEO4J_||' | sed 's|_|.|g' | sed 's|\.\.|_|g')

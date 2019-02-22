@@ -3,19 +3,13 @@ from ujson import dumps
 from uuid import uuid4
 
 import pytest
-from pydispatch import dispatcher
 from testfixtures import LogCapture
 
-from hopla.graphs.nodes.core import DEFAULT_ENCODING
-from hopla.graphs.nodes.node import Node
-from hopla.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning, \
-    SchemaValidationWarning, SchemaValidationException
-from hopla.events.dispatcher import connect_handler, disconnect_handler
-from hopla.events.exceptions import HandlerArgsCountException
-from hopla.events.signals import Signals
-from hopla.logging import create_logger
-from hopla.logging.auto.logging import auto_log
-from hopla.graphs.nodes.validation.validator import Validator
+from hopla_graph.graphs.nodes.core import DEFAULT_ENCODING
+from hopla_graph.graphs.nodes.node import Node
+from hopla_graph.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla_graph.shared.logging import create_logger
+from hopla_graph.shared.logging.auto.logging import auto_log
 
 globals()["cache"] = {}
 
@@ -64,10 +58,6 @@ def test_name_is_string():
         assert type(e_info) == CoreDocumentException
     Node(name="name")
     assert True
-
-
-def test_core_validate():
-    assert Node().validate()
 
 
 def test_ttl_is_numeric():
@@ -122,168 +112,6 @@ def test_init_stream_with_exc(tmpdir):
     with pytest.raises(Exception) as e_info:
         Node(data=val)
         assert type(e_info) == CoreDocumentException
-        assert "Unexpected character" in str(e_info)
-
-
-def test_schema_validated_entity():
-    validation_expression = {
-        "data": {
-            "type": "object",
-            "properties": {
-                "price": {"type": "number"},
-                "name": {"type": "string"},
-            }
-        }}
-    value_doc = {"name": "Lord of the ring", "price": 34.99}
-    assert Node(value_doc, validator=Validator(validation_expression)).validate()
-
-
-def test_schema_validated_entity_exception():
-    validation_expression = {
-        "data": {
-            "type": "object",
-            "properties": {
-                "price": {"type": "number"},
-                "__name": {"type": "string"},
-            }
-        }}
-    with pytest.raises(Exception) as e_info:
-        Node({"__name": "Lord of the ring", "price": "34.99"}, validator=Validator(validation_expression))
-        assert type(e_info) == SchemaValidationException
-
-        validation_expression = {
-            "data": {
-                "type": "object",
-                "properties": {
-                    "price": {"type": "number"},
-                    "__name": {"type": "string"},
-                }
-            },
-            "as_warning": False}
-
-    with pytest.raises(Exception) as e_info:
-        Node({"__name": "Lord of the ring", "price": "34.99"}, validator=Validator(validation_expression))
-        assert type(e_info) == SchemaValidationException
-
-
-def test_schema_validated_entity_warning(recwarn):
-    validation_expression = {
-        "data": {
-            "type": "object",
-            "properties": {
-                "price": {"type": "number"},
-                "__name": {"type": "string"},
-            }
-        },
-        "as_warning": True}
-    warnings.simplefilter("always")
-    Node({"__name": "Lord of the ring", "price": "34.99"}, validator=Validator(validation_expression)).validate()
-    assert len(recwarn) == 1
-    assert recwarn.pop(SchemaValidationWarning)
-
-
-def test_disconnect_event_signal():
-    def handle_creation(_):
-        assert False
-
-    connect_handler(handle_creation, signal=Signals.ENTITY_CREATED, sender=dispatcher.Any)
-    disconnect_handler(signal=Signals.ENTITY_CREATED)
-    _ = Node(TEST_DATA)
-    assert True
-
-
-def test_disconnect_event_handler():
-    def handle_creation(_):
-        assert False
-
-    connect_handler(handle_creation, signal=Signals.ENTITY_CREATED, sender=dispatcher.Any)
-    disconnect_handler(handler=handle_creation)
-    _ = Node(TEST_DATA)
-    assert True
-
-
-def test_disconnect_event_handler_and_signal():
-    def handle_creation(_):
-        assert False
-
-    connect_handler(handle_creation, signal=Signals.ENTITY_CREATED, sender=dispatcher.Any)
-    disconnect_handler(handler=handle_creation, signal=Signals.ENTITY_CREATED)
-    _ = Node(TEST_DATA)
-    assert True
-
-
-def test_disconnect_wrong_event():
-    def handle_creation(message):
-        globals()["cache"]["test_disconnect_wrong_event"] = message
-
-    connect_handler(handle_creation, signal=Signals.ENTITY_CREATED, sender=dispatcher.Any)
-    disconnect_handler(signal=Signals.ENTITY_CLONED)
-    _ = Node(TEST_DATA)
-    assert globals()["cache"]["test_disconnect_wrong_event"] is not None
-
-
-def test_event_entity_created():
-    def handle_creation(message):
-        assert message["type"] == Signals.ENTITY_CREATED
-        assert type(message["entity"]) == Node
-        assert message["entity"].get_data() == TEST_DATA
-
-    connect_handler(handle_creation, signal=Signals.ENTITY_CREATED, sender=dispatcher.Any)
-    _ = Node(TEST_DATA)
-    disconnect_handler(signal=Signals.ENTITY_CREATED)
-
-
-def test_event_entity_new_cloned():
-    def handle_cloning_new(message):
-        if "test_event_entity_new_cloned" in globals()["cache"].keys() and globals()["cache"][
-            "test_event_entity_new_cloned"]:
-            assert message["type"] == Signals.ENTITY_CLONED
-            assert type(message["entity"]) == Node
-            assert message["entity"].get_data() == TEST_DATA
-            assert message["source"].get_data() == TEST_DATA
-            assert message["entity"].core_id != message["source"].core_id
-            assert message["entity"].create_date != message["source"].create_date
-            assert message["entity"].update_date != message["source"].update_date
-            assert message["entity"].ttl != message["source"].ttl
-            del globals()["cache"]["test_event_entity_new_cloned"]
-
-    connect_handler(handle_cloning_new, signal=Signals.ENTITY_CLONED, sender=dispatcher.Any)
-    globals()["cache"]["run_handler"] = True
-
-    d = Node(TEST_DATA, ttl=10)
-    d.clone(new=True)
-    disconnect_handler(signal=Signals.ENTITY_CLONED)
-
-
-def test_event_entity_cloned():
-    def handle_cloning(message):
-        assert message["type"] == Signals.ENTITY_CLONED
-        assert type(message["entity"]) == Node
-        assert message["entity"].get_data() == TEST_DATA
-        assert message["source"].get_data() == TEST_DATA
-        assert message["entity"].core_id == message["source"].core_id
-        assert message["entity"].create_date == message["source"].create_date
-        assert message["entity"].update_date == message["source"].update_date
-        assert message["entity"].ttl == message["source"].ttl
-
-    connect_handler(handle_cloning, signal=Signals.ENTITY_CLONED, sender=dispatcher.Any)
-    d = Node(TEST_DATA)
-    d.clone(new=False)
-    disconnect_handler(signal=Signals.ENTITY_CLONED)
-
-
-def test_event_entity_updated():
-    def handle_update(message):
-        assert message["type"] == Signals.ENTITY_UPDATED
-        assert type(message["entity"]) == Node
-        assert message["entity"].get_data() == TEST_DATA * 2
-        assert message["changes"]["from"] == TEST_DATA
-        assert message["changes"]["to"] == TEST_DATA * 2
-
-    connect_handler(handle_update, signal=Signals.ENTITY_UPDATED, sender=dispatcher.Any)
-    d = Node(TEST_DATA)
-    d.set_data(TEST_DATA * 2)
-    disconnect_handler(signal=Signals.ENTITY_UPDATED)
 
 
 def test_from_str():
@@ -390,7 +218,7 @@ def test_logger_catch_exception(capture_logs):
         method()
 
         capture_logs.check(
-            ('hopla', 'ERROR', 'message'),
+            ('hopla.', 'ERROR', 'message'),
         )
 
 
@@ -403,7 +231,7 @@ def test_logger_catch_exception_defautls(capture_logs):
         method()
 
         capture_logs.check(
-            ('hopla', 'ERROR', 'message'),
+            ('hopla.', 'ERROR', 'message'),
         )
 
 
@@ -420,25 +248,6 @@ def test_logger_does_not_catch_exception(capture_logs):
         )
 
 
-def test_dispatcher_wrong_handler_type():
-    with pytest.raises(Exception) as e_info:
-        connect_handler(0, Signals.UNKNOWN)
-        assert type(e_info) == TypeError
-
-
-def test_dispatcher_wrong_signal_type():
-    def handler(_):
-        pass
-
-    with pytest.raises(Exception) as e_info:
-        connect_handler(handler, 0)
-        assert type(e_info) == TypeError
-
-
 def test_dispatcher_wrong_args_count():
     def handler():
         pass
-
-    with pytest.raises(Exception) as e_info:
-        connect_handler(handler, Signals.UNKNOWN)
-        assert type(e_info) == HandlerArgsCountException
