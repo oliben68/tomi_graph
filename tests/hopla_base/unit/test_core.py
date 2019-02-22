@@ -1,4 +1,3 @@
-mvgoit
 import warnings
 from ujson import dumps
 from uuid import uuid4

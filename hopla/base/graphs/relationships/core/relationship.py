@@ -60,9 +60,12 @@ class BaseRelationship(BaseGraphEntity):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, name=None, data=None):
+    def __call__(self, name=None, rel_type=None, data=None):
         raise NotImplementedError
 
-    def set(self, name=None, data=None):
-        return self.__call__(name=name, data=data)
+    def set(self, name=None, rel_type=None, data=None):
+        return self.__call__(name=name, rel_type=rel_type, data=data)
+
+    def __(self, name=None, rel_type=None, data=None):
+        return self.__call__(name=name, rel_type=rel_type, data=data)
 
