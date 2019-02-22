@@ -2,7 +2,6 @@
 omit =
     # omit everything in tests
     tests/*
-    hopla/model/*
 
 [report]
 exclude_lines =
