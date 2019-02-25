@@ -1,0 +1,2 @@
+class FrozenObjectWarning(Warning):
+    pass

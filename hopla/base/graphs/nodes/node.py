@@ -30,6 +30,7 @@ class Node(OperatorsResolver, BaseNode):
                                '__key': 'key',
                                '__data': 'data',
                                '__name': 'name',
+                               '__version': 'version',
                                '__create_date': 'create_date',
                                '__update_date': 'update_date',
                                '__ttl': 'ttl'}
@@ -53,6 +54,10 @@ class Node(OperatorsResolver, BaseNode):
     @property
     def name(self):
         return self._name
+
+    @property
+    def version(self):
+        return self._version
 
     @name.setter
     @auto_log()
@@ -156,6 +161,7 @@ class Node(OperatorsResolver, BaseNode):
         self._encoding = DEFAULT_ENCODING if type(encoding) != str else encoding
         self._key = key
         self._name = name
+        self._version = 0
         self._inner_data = None
         self._ttl = ttl
         self._options = options
@@ -191,6 +197,7 @@ class Node(OperatorsResolver, BaseNode):
                 "__type": d.node_type,
                 "__object": {
                     "__id": d.core_id,
+                    "__version": d.version,
                     "__name": d.name,
                     "__key": str(d.key) if d.key is not None else None,
                     "__encoding": d.encoding,
@@ -254,7 +261,7 @@ class Node(OperatorsResolver, BaseNode):
         if type(o) == dict and set(Node.properties_mapping.keys()) == set(o.keys()):
             core_id = str(uuid.uuid4()) if new_instance else o["__id"]
             doc = Node(o["__data"], core_id=core_id,
-                       encoding=o["__encoding"], key=o["__key"], name=o["__name"])
+                       encoding=o["__encoding"], key=o["__key"], name=o["__name"], )
 
             if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
                 doc.set_data(Node.from_str(dumps(o["__data"]["__object"]), new=new_instance))

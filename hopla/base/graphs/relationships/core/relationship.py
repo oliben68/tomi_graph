@@ -1,9 +1,9 @@
 from abc import abstractmethod
 
-from hopla.base.graphs import Category, BaseGraphEntity
+from hopla.base.graphs import Category, BaseGraphEntity, VersionAware
 
 
-class BaseRelationship(BaseGraphEntity):
+class BaseRelationship(BaseGraphEntity, VersionAware):
     category = Category.RELATIONSHIP
 
     @property

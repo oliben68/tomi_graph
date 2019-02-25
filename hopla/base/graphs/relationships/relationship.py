@@ -1,5 +1,6 @@
 import weakref
 from collections.abc import MutableMapping
+from copy import deepcopy
 from enum import Enum
 from uuid import uuid4
 
@@ -13,6 +14,9 @@ from hopla.base.graphs.relationships.exceptions import CoreRelationshipException
 
 
 class Relationship(OperatorsResolver, BaseRelationship):
+    def clone(self, new=None):
+        return deepcopy(self)
+
     @property
     def id(self):
         return self._id
@@ -79,6 +83,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
     def __init__(self, node_1, node_2, name=None, rel_type=None, direction=None, protection=None, **kwargs):
         self._id = str(uuid4())
         self._name = str(name) if name is not None else None
+        self._version = 0
         self._node_1 = weakref.ref(node_1)
         self._node_2 = weakref.ref(node_2)
         self._protection = protection if type(protection) == Protection else Protection.NONE

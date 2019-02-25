@@ -1,10 +1,10 @@
 from abc import abstractmethod
 from ujson import dumps
 
-from hopla.base.graphs import Category, BaseGraphEntity
+from hopla.base.graphs import Category, BaseGraphEntity, VersionAware
 
 
-class BaseNode(BaseGraphEntity):
+class BaseNode(BaseGraphEntity, VersionAware):
     category = Category.NODE
 
     @property
@@ -40,6 +40,11 @@ class BaseNode(BaseGraphEntity):
     @name.setter
     @abstractmethod
     def name(self, value):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def version(self):
         raise NotImplementedError
 
     @property
