@@ -1,14 +1,15 @@
 import ujson
 from copy import deepcopy
 from ujson import loads
-from uuid import uuid4
 
 from objectpath import Tree
 
-from hopla.base.graphs.nodes.core.node import BaseNode
 from hopla.base.graphs.graphs.graph import Graph
-from hopla.base.graphs.relationships.core import RelationType, Protection, NULL_VAL
-from hopla.base.graphs.relationships.relationship import Relationship
+from hopla.base.graphs.nodes.core.node import CoreNodeClass
+from hopla.base.graphs.relationships.core import NULL_VAL
+from hopla.base.graphs.relationships.core.protection import Protection
+from hopla.base.graphs.relationships.core.relation_type import RelationType
+from hopla.base.graphs.relationships.relationship_class import RelationshipBaseClass
 
 
 class NodeDataGraph(Graph):
@@ -17,7 +18,7 @@ class NodeDataGraph(Graph):
     def _flatten(self):
 
         def to_id(d):
-            if issubclass(type(d), BaseNode):
+            if issubclass(type(d), CoreNodeClass):
                 return {
                     "__type": d.node_type,
                     "__id": d.core_id
@@ -33,7 +34,7 @@ class NodeDataGraph(Graph):
                 for idx, v in enumerate(d):
                     d[idx] = to_id(v)
                     swap_with_id(v)
-            elif issubclass(type(d), BaseNode):
+            elif issubclass(type(d), CoreNodeClass):
                 self._nodes[d.core_id] = d
                 d_data = d.get_data()
                 if type(d_data) == tuple:
@@ -51,7 +52,7 @@ class NodeDataGraph(Graph):
             if hasattr(tree, "data"):
                 for ref in list(
                         tree.execute('$..*[@.__type and @.__id]')):
-                    self._relationships.append(Relationship(
+                    self._relationships.append(RelationshipBaseClass(
                         node_1=self._nodes[v.core_id],
                         node_2=self._nodes[ref["__id"]],
                         rel_type=self._rel_type,
@@ -81,7 +82,7 @@ class NodeDataGraph(Graph):
             elif issubclass(type(d), list) or type(d) == list:
                 for idx, v in enumerate(d):
                     d[idx] = swap_with_doc(to_doc(v))
-            elif issubclass(type(d), BaseNode):
+            elif issubclass(type(d), CoreNodeClass):
                 d_data = d.get_data()
                 if type(d_data) == tuple:
                     # some ugliness to bypass issues with the immutable nature of tuples
@@ -104,8 +105,8 @@ class NodeDataGraph(Graph):
 
     @root_node.setter
     def root_node(self, value):
-        if not issubclass(type(value), BaseNode):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseNode.__name__))
+        if not issubclass(type(value), CoreNodeClass):
+            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=CoreNodeClass.__name__))
         self._root_node = value
         self._relationships = []
         self._nodes = {}
@@ -163,8 +164,8 @@ class NodeDataGraph(Graph):
         :param do_not_clone:
         """
         super().__init__(namespace_root=NodeDataGraph.NAMESPACE_DELIMITER)
-        if not issubclass(type(doc), BaseNode):
-            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=BaseNode.__name__))
+        if not issubclass(type(doc), CoreNodeClass):
+            raise TypeError("Argument doc must be a class inheriting from {base}".format(base=CoreNodeClass.__name__))
         # self._id = str(uuid4())
         self._root_node = doc if do_not_clone else deepcopy(doc)
         # self._relationships = []

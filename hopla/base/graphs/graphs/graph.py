@@ -1,10 +1,10 @@
 from uuid import uuid4
 
+from hopla.base.graphs.graphs.core.graph import BaseGraph
+from hopla.base.graphs.nodes.core.node import CoreNodeClass
 from hopla.base.graphs.operators import GraphOperationDirection, GraphOperation, DefaultValues
 from hopla.base.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.base.graphs.nodes.core.node import BaseNode
-from hopla.base.graphs.graphs.core.graph import BaseGraph
-from hopla.base.graphs.relationships.core.relationship import BaseRelationship
+from hopla.base.graphs.relationships.core.relationship import CoreRelationshipClass
 
 
 class Graph(OperatorsResolver, BaseGraph):
@@ -109,8 +109,8 @@ class Graph(OperatorsResolver, BaseGraph):
                 return self.add_graph(other, target=Graph(Graph.NAMESPACE_DELIMITER))
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
-                                                                                            self=type(self).__name,
-                                                                                            other=type(other).__name))
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name__))
 
         if operation == GraphOperation.SUB:
             operator = "-"
@@ -125,8 +125,8 @@ class Graph(OperatorsResolver, BaseGraph):
                 return self
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
-                                                                                            self=type(self).__name,
-                                                                                            other=type(other).__name))
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name__))
 
     def search_relationships(self, **kwargs):
         # Defaults for search arguments: name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL
@@ -141,14 +141,14 @@ class Graph(OperatorsResolver, BaseGraph):
 
     @staticmethod
     def erase(self, obj):
-        if issubclass(type(obj), BaseNode):
+        if issubclass(type(obj), CoreNodeClass):
             found = [k for k, e in self.nodes.value_collection.items() if id(e) == id(obj)]
             if len(found) > 0:
                 value = self.nodes.get(found[0])()
                 del value
                 del self.nodes[found[0]]
 
-        if issubclass(type(obj), BaseRelationship):
+        if issubclass(type(obj), CoreRelationshipClass):
             found = [r for r in self.relationships.value_collection if id(r) == id(obj)]
             if len(found) > 0:
                 value = self.relationships.get(found[0])()

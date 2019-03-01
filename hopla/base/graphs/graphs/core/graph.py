@@ -1,11 +1,11 @@
 from abc import abstractmethod
-from uuid import uuid4
 
-from hopla.base.graphs import Category, BaseGraphEntity
+from hopla.base.graphs.base_graph_entity import BaseGraphEntity
+from hopla.base.graphs.entity_category import EntityCategory
 
 
 class BaseGraph(BaseGraphEntity):
-    category = Category.GRAPH
+    category = EntityCategory.GRAPH
 
     @property
     @abstractmethod

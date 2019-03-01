@@ -1,24 +1,23 @@
 from hopla.base.graphs.graphs.graph import Graph
-
-from hopla.base.graphs.nodes.node import Node
 from hopla.base.graphs.graphs.node_data_graph import NodeDataGraph
-from hopla.base.graphs.relationships.core import Direction
-from hopla.base.graphs.relationships.relationship import Relationship
+from hopla.base.graphs.nodes.node_class import NodeBaseClass
+from hopla.base.graphs.relationships.core.direction import Direction
+from hopla.base.graphs.relationships.relationship_class import Relationship, RelationshipBaseClass
 
 
 def test_graph():
-    assert NodeDataGraph(Node())
+    assert NodeDataGraph(NodeBaseClass())
 
 
 def test_complex_graph():
     ids = ["A", "B", "C", "D", "E", "ROOT"]
 
-    d_a = Node(ids[0], core_id=ids[0])
-    d_b = Node(ids[1], core_id=ids[1])
-    d_c = Node(ids[2], core_id=ids[2])
-    d_d = Node(d_a, d_b, d_c, core_id=ids[3])
-    d_e = Node([{"D_d": d_d}], core_id=ids[4])
-    root = Node(d_e, core_id=ids[5])
+    d_a = NodeBaseClass(ids[0], core_id=ids[0])
+    d_b = NodeBaseClass(ids[1], core_id=ids[1])
+    d_c = NodeBaseClass(ids[2], core_id=ids[2])
+    d_d = NodeBaseClass(d_a, d_b, d_c, core_id=ids[3])
+    d_e = NodeBaseClass([{"D_d": d_d}], core_id=ids[4])
+    root = NodeBaseClass(d_e, core_id=ids[5])
 
     g = root.graph
 
@@ -34,40 +33,40 @@ def test_complex_graph():
 
 
 def test_relationship():
-    e_one = Node(core_id="One")
-    e_two = Node(core_id="Two")
+    e_one = NodeBaseClass(core_id="One")
+    e_two = NodeBaseClass(core_id="Two")
 
     rel = Relationship(e_one, e_two)
 
     assert rel.node_1 == e_one
     assert rel.node_2 == e_two
-    assert rel.rel_type == Relationship.__name__.upper()
+    assert rel.rel_type == RelationshipBaseClass.__name__
     assert rel.data == {}
 
 
 def test_link_operators():
-    e1 = Node("L1", core_id="L1")
-    e2 = Node("R1", core_id="R1")
+    e1 = NodeBaseClass("L1", core_id="L1")
+    e2 = NodeBaseClass("R1", core_id="R1")
     rel_none = e1 - e2
 
-    assert type(rel_none) == Relationship
+    assert type(rel_none).__name__ == RelationshipBaseClass.__name__
     assert rel_none.direction == Direction.NONE
 
     rel_left_right = e1 > e2
 
-    assert type(rel_left_right) == Relationship
+    assert type(rel_left_right).__name__ == RelationshipBaseClass.__name__
     assert rel_left_right.direction == Direction.LEFT_TO_RIGHT
 
     rel_right_left = e1 < e2
 
-    assert type(rel_right_left) == Relationship
+    assert type(rel_right_left).__name__ == RelationshipBaseClass.__name__
     assert rel_right_left.direction == Direction.RIGHT_TO_LEFT
 
 
 def test_link_multiple_operators():
-    e1 = Node("E1", core_id="E1")
-    e2 = Node("E2", core_id="E2")
-    e3 = Node("E3", core_id="E3")
+    e1 = NodeBaseClass("E1", core_id="E1")
+    e2 = NodeBaseClass("E2", core_id="E2")
+    e3 = NodeBaseClass("E3", core_id="E3")
 
     g1 = e1 - e2 - e3
 
@@ -90,19 +89,19 @@ def test_link_multiple_operators():
     rel_first = e2 > e3
     g4 = e1 < rel_first
 
-    assert type(rel_first) == Relationship
+    assert type(rel_first).__name__ == RelationshipBaseClass.__name__
     assert type(g4) == Graph
     assert len(g4.nodes) == 3
     assert len(g4.relationships) == 2
 
 
 def test_mix_types_operations():
-    e1 = Node("E1", core_id="E1")
-    e2 = Node("E2", core_id="E2")
-    e3 = Node("E3", core_id="E3")
-    e4 = Node("E4", core_id="E4")
-    e5 = Node("E5", core_id="E5")
-    e6 = Node("E6", core_id="E6")
+    e1 = NodeBaseClass("E1", core_id="E1")
+    e2 = NodeBaseClass("E2", core_id="E2")
+    e3 = NodeBaseClass("E3", core_id="E3")
+    e4 = NodeBaseClass("E4", core_id="E4")
+    e5 = NodeBaseClass("E5", core_id="E5")
+    e6 = NodeBaseClass("E6", core_id="E6")
 
     g1 = e1 - e2 - e3
     g5 = g1 + e4
@@ -112,7 +111,7 @@ def test_mix_types_operations():
     assert len(g5.relationships) == 2
 
     r1 = e1 - e2
-    assert type(r1) == Relationship
+    assert type(r1).__name__ == RelationshipBaseClass.__name__
     g6 = e3 - e4 - e5
     assert type(g6) == Graph
     g6 = g6 + r1
@@ -133,18 +132,18 @@ def test_mix_types_operations():
 def test_adding_entity_graph():
     ids = ["A", "B", "C", "D", "E", "ROOT"]
 
-    d_a = Node(ids[0], core_id=ids[0])
-    d_b = Node(ids[1], core_id=ids[1])
-    d_c = Node(ids[2], core_id=ids[2])
-    d_d = Node(d_a, d_b, d_c, core_id=ids[3])
-    d_e = Node([{"D_d": d_d}], core_id=ids[4])
-    root = Node(d_e, core_id=ids[5])
+    d_a = NodeBaseClass(ids[0], core_id=ids[0])
+    d_b = NodeBaseClass(ids[1], core_id=ids[1])
+    d_c = NodeBaseClass(ids[2], core_id=ids[2])
+    d_d = NodeBaseClass(d_a, d_b, d_c, core_id=ids[3])
+    d_e = NodeBaseClass([{"D_d": d_d}], core_id=ids[4])
+    root = NodeBaseClass(d_e, core_id=ids[5])
 
     g1 = root.graph
 
-    e1 = Node("E1", core_id="E1")
-    e2 = Node("E2", core_id="E2")
-    e3 = Node("E3", core_id="E3")
+    e1 = NodeBaseClass("E1", core_id="E1")
+    e2 = NodeBaseClass("E2", core_id="E2")
+    e3 = NodeBaseClass("E3", core_id="E3")
 
     g2 = e1 - e2 - e3
 
@@ -155,21 +154,30 @@ def test_adding_entity_graph():
 
 
 def test_callable():
-    e1 = Node("L1", core_id="L1")
-    e2 = Node("R1", core_id="R1")
+    e1 = NodeBaseClass("L1", core_id="L1")
+    e2 = NodeBaseClass("R1", core_id="R1")
     rel = e1 - e2
     new_data = dict(a=2)
-    rel(rel_type="TYPE", data=new_data)
+    rel(data=new_data)
 
-    assert type(rel) == Relationship
-    assert rel.rel_type == "TYPE"
+    assert type(rel).__name__ == RelationshipBaseClass.__name__ == rel.rel_type
     assert rel.data == new_data
 
 
+def test_callable_new_type():
+    e1 = NodeBaseClass("L1", core_id="L1")
+    e2 = NodeBaseClass("R1", core_id="R1")
+    new_type = "NewType"
+    rel = (e1 - e2)(rel_type=new_type)
+
+    assert type(rel).__name__ != RelationshipBaseClass.__name__
+    assert rel.rel_type == new_type
+
+
 def test_graph_methods():
-    e1 = Node("E1", core_id="E1")
-    e2 = Node("E2", core_id="E2")
-    e3 = Node("E3", core_id="E3")
+    e1 = NodeBaseClass("E1", core_id="E1")
+    e2 = NodeBaseClass("E2", core_id="E2")
+    e3 = NodeBaseClass("E3", core_id="E3")
 
     g = Graph(Graph.NAMESPACE_DELIMITER)
 
@@ -181,9 +189,9 @@ def test_graph_methods():
     assert g_entities_count == 3
     assert g_relationships_count == 1
 
-    e4 = Node("E4", core_id="E4")
-    e5 = Node("E5", core_id="E5")
-    e6 = Node("E6", core_id="E6")
+    e4 = NodeBaseClass("E4", core_id="E4")
+    e5 = NodeBaseClass("E5", core_id="E5")
+    e6 = NodeBaseClass("E6", core_id="E6")
 
     g2 = Graph(Graph.NAMESPACE_DELIMITER)
 

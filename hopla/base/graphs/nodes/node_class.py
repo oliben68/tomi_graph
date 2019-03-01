@@ -1,10 +1,10 @@
 import uuid
 import warnings
+from collections.abc import MutableSequence, MutableMapping
 from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from io import TextIOBase
-from collections.abc import MutableSequence
 from ujson import loads, load, dumps
 
 import chardet
@@ -14,30 +14,31 @@ from py._path.local import LocalPath
 from hopla.base.collections import get_defaults, flatten
 from hopla.base.graphs.graphs.graph import Graph
 from hopla.base.graphs.graphs.node_data_graph import NodeDataGraph
+from hopla.base.graphs.indexes_support import IndexesSupport
 from hopla.base.graphs.nodes.core import BUILT_INS, DEFAULT_ENCODING
-from hopla.base.graphs.nodes.core.node import BaseNode
+from hopla.base.graphs.nodes.core.node import CoreNodeClass
 from hopla.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
 from hopla.base.graphs.operators import GraphOperationDirection, GraphOperation
 from hopla.base.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.base.graphs.relationships.core import Direction
-from hopla.base.graphs.relationships.relationship import Relationship
+from hopla.base.graphs.relationships.core.direction import Direction
+from hopla.base.graphs.relationships.relationship_class import Relationship
 from hopla.base.shared.logging.auto.logging import auto_log
 
 
-class Node(OperatorsResolver, BaseNode):
+class NodeBaseClass(OperatorsResolver, CoreNodeClass):
     properties_mapping = {'__encoding': 'encoding',
-                               '__id': 'core_id',
-                               '__key': 'key',
-                               '__data': 'data',
-                               '__name': 'name',
-                               '__version': 'version',
-                               '__create_date': 'create_date',
-                               '__update_date': 'update_date',
-                               '__ttl': 'ttl'}
+                          '__id': 'core_id',
+                          '__key': 'key',
+                          '__data': 'data',
+                          '__name': 'name',
+                          '__version': 'version',
+                          '__create_date': 'create_date',
+                          '__update_date': 'update_date',
+                          '__ttl': 'ttl'}
 
     @property
     def node_type(self):
-        return self._node_type
+        return type(self).__name__
 
     @property
     def core_id(self):
@@ -100,6 +101,10 @@ class Node(OperatorsResolver, BaseNode):
             self._graph = NodeDataGraph(self)
         return self._graph
 
+    @property
+    def unique_index(self):
+        return ":".join([type(self).__name__, self._core_id])
+
     def to_graph(self):
         return self.graph
 
@@ -141,7 +146,7 @@ class Node(OperatorsResolver, BaseNode):
         """
         self._new = True
 
-    def __init__(self, *args, node_type=None, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
+    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
                  create_date=None, update_date=None, options=None):
         """
 
@@ -156,7 +161,6 @@ class Node(OperatorsResolver, BaseNode):
         :param update_date:
         :param options:
         """
-        self._node_type = Node.__name__ if node_type is None else str(node_type)
         self._core_id = uuid.uuid4().hex if core_id is None else str(core_id)
         self._encoding = DEFAULT_ENCODING if type(encoding) != str else encoding
         self._key = key
@@ -182,7 +186,7 @@ class Node(OperatorsResolver, BaseNode):
         self._new = False
 
     def __str__(self):
-        return BaseNode.serialize_to_string(self.toDict())
+        return CoreNodeClass.serialize_to_string(self.toDict())
 
     def __eq__(self, other):
         return str(self) == str(other)
@@ -194,7 +198,7 @@ class Node(OperatorsResolver, BaseNode):
     def _to_dict(o):
         def dict_format(d):
             return {
-                "__type": d.node_type,
+                "__type": type(d).__name__,
                 "__object": {
                     "__id": d.core_id,
                     "__version": d.version,
@@ -204,7 +208,7 @@ class Node(OperatorsResolver, BaseNode):
                     "__create_date": d.create_date,
                     "__update_date": d.update_date,
                     "__ttl": d.ttl,
-                    "__data": Node._to_dict(d.get_data()),
+                    "__data": NodeBaseClass._to_dict(d.get_data()),
                 }
             }
 
@@ -214,31 +218,31 @@ class Node(OperatorsResolver, BaseNode):
             iter(o)
             if issubclass(type(o), dict) or type(o) == dict:
                 for k, v in o.items():
-                    if issubclass(type(v), BaseNode):
+                    if issubclass(type(v), CoreNodeClass):
                         o[k] = dict_format(v)
                     else:
-                        o[k] = Node._to_dict(v)
+                        o[k] = NodeBaseClass._to_dict(v)
             elif issubclass(type(o), list) or type(o) == list:
                 for idx, v in enumerate(o):
-                    if issubclass(type(v), BaseNode):
+                    if issubclass(type(v), CoreNodeClass):
                         o[idx] = dict_format(v)
                     else:
-                        o[idx] = Node._to_dict(v)
+                        o[idx] = NodeBaseClass._to_dict(v)
             return o
         except TypeError:
-            if issubclass(type(o), BaseNode):
+            if issubclass(type(o), CoreNodeClass):
                 return dict_format(o)
             else:
                 return o
 
     def children(self):
         tree = Tree(loads(str(self)))
-        return [Node.from_str(dumps(d["__object"])) for d in
+        return [NodeBaseClass.from_str(dumps(d["__object"])) for d in
                 list(tree.execute('$..*[@.__type and @.__object]')) if
                 d["__object"]["__id"] != self.core_id]
 
     def toDict(self):
-        return Node._to_dict(deepcopy(self))
+        return NodeBaseClass._to_dict(deepcopy(self))
 
     def clone(self, new=None):
         cloned = deepcopy(self)
@@ -251,22 +255,27 @@ class Node(OperatorsResolver, BaseNode):
         return cloned
 
     @staticmethod
-    def from_str(string_value, new=None):
+    def from_str(string_value, new=None, node_type=None):
         new_instance = new if type(new) == bool else False
         o = loads(string_value)
 
         if type(o) == dict and {"__type", "__object"} == set(o.keys()):
-            return Node.from_str(dumps(o["__object"]), new=new_instance)
+            return NodeBaseClass.from_str(dumps(o["__object"]), new=new_instance)
 
-        if type(o) == dict and set(Node.properties_mapping.keys()) == set(o.keys()):
+        if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) == set(o.keys()):
             core_id = str(uuid.uuid4()) if new_instance else o["__id"]
-            doc = Node(o["__data"], core_id=core_id,
-                       encoding=o["__encoding"], key=o["__key"], name=o["__name"], )
+
+            if node_type is None or node_type.upper() == NodeBaseClass.__name__.upper():
+                doc = NodeBaseClass(o["__data"], core_id=core_id,
+                                    encoding=o["__encoding"], key=o["__key"], name=o["__name"], )
+            else:
+                doc = NodeClassGenerator()(o["__data"], node_type=node_type, core_id=core_id,
+                                           encoding=o["__encoding"], key=o["__key"], name=o["__name"])
 
             if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
-                doc.set_data(Node.from_str(dumps(o["__data"]["__object"]), new=new_instance))
+                doc.set_data(NodeBaseClass.from_str(dumps(o["__data"]["__object"]), new=new_instance))
             else:
-                doc.set_data(Node.from_str(dumps(o["__data"])))
+                doc.set_data(NodeBaseClass.from_str(dumps(o["__data"])))
 
             doc._create_date = int(datetime.utcnow().timestamp()) if new_instance else o["__create_date"]
             doc._update_date = doc._create_date if new_instance else o["__update_date"]
@@ -274,17 +283,17 @@ class Node(OperatorsResolver, BaseNode):
 
             return doc
 
-        if type(o) == dict and set(Node.properties_mapping.keys()) != set(o.keys()):
-            return {k: Node.from_str(dumps(v), new=new_instance) for k, v in o.items()}
+        if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) != set(o.keys()):
+            return {k: NodeBaseClass.from_str(dumps(v), new=new_instance) for k, v in o.items()}
 
         if type(o) == list:
-            return [Node.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
+            return [NodeBaseClass.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
         return o
 
     def __repr__(self):
         # In some corner cases __repr__ gets called before __init__
         try:
-            return "<type '{klass}' - value {value}>".format(klass=self.node_type, value=dumps(self.toDict()))
+            return "<type '{klass}' - value {value}>".format(klass=type(self).__name__, value=dumps(self.toDict()))
         except AttributeError:
             return super().__repr__()
 
@@ -316,7 +325,7 @@ class Node(OperatorsResolver, BaseNode):
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
                                                                                             self=type(self).__name__,
-                                                                                            other=type(other).__name))
+                                                                                            other=type(other).__name__))
         if operation == GraphOperation.LINK_RIGHT_LEFT:
             operator = "<"
             if direction == GraphOperationDirection.ENTITY_ENTITY:
@@ -330,7 +339,7 @@ class Node(OperatorsResolver, BaseNode):
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
                                                                                             self=type(self).__name__,
-                                                                                            other=type(other).__name))
+                                                                                            other=type(other).__name__))
 
     def search(self, keys, sep=None, flatten_node=False):
         dictionary = flatten(self.toDict()) if flatten_node else self.toDict()
@@ -355,3 +364,25 @@ class Node(OperatorsResolver, BaseNode):
                 return result
             except KeyError:
                 return None
+
+
+class NodeClassGenerator(object):
+    @staticmethod
+    def create(entity_type=None, indexes=None):
+        new_class = type(entity_type if type(entity_type) == str else NodeBaseClass.__name__, (NodeBaseClass,), {})
+
+        def idx_fields(cls):
+            idxs = {}
+            if issubclass(type(indexes), MutableMapping):
+                for idx, fields in indexes.items():
+                    valid_fields = [field for field in set(fields) if type(field) == str and field in dir(new_class)]
+                    if len(valid_fields) > 0:
+                        idxs[idx] = valid_fields
+            return idxs
+
+        setattr(new_class, IndexesSupport.INDEXES_CLASS_METHOD, classmethod(idx_fields))
+
+        return new_class
+
+
+Node = NodeClassGenerator.create()

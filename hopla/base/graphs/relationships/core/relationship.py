@@ -1,10 +1,13 @@
 from abc import abstractmethod
 
-from hopla.base.graphs import Category, BaseGraphEntity, VersionAware
+from hopla.base.graphs.base_graph_entity import BaseGraphEntity
+from hopla.base.graphs.entity_category import EntityCategory
+from hopla.base.graphs.indexes_support import IndexesSupport
+from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 
 
-class BaseRelationship(BaseGraphEntity, VersionAware):
-    category = Category.RELATIONSHIP
+class CoreRelationshipClass(BaseGraphEntity, VersionAwareEntity, IndexesSupport):
+    category = EntityCategory.RELATIONSHIP
 
     @property
     @abstractmethod
@@ -68,4 +71,3 @@ class BaseRelationship(BaseGraphEntity, VersionAware):
 
     def __(self, name=None, rel_type=None, data=None):
         return self.__call__(name=name, rel_type=rel_type, data=data)
-

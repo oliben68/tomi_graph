@@ -6,8 +6,8 @@ import pytest
 from testfixtures import LogCapture
 
 from hopla.base.graphs.nodes.core import DEFAULT_ENCODING
-from hopla.base.graphs.nodes.node import Node
 from hopla.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from hopla.base.graphs.nodes.node_class import Node, NodeBaseClass
 from hopla.base.shared.logging import create_logger
 from hopla.base.shared.logging.auto.logging import auto_log
 
@@ -123,14 +123,14 @@ def test_from_str():
 def test_dict_from_str():
     dico = Node.from_str(dumps(dict(test=Node().toDict())))
     assert type(dico) == dict
-    assert type(dico["test"]) == Node
+    assert type(dico["test"]) == NodeBaseClass
 
 
 def test_list_from_str():
     lst = Node.from_str(dumps([Node().toDict(), Node()]))
     assert type(lst) == list
     for d in lst:
-        assert type(d) == Node
+        assert type(d) == NodeBaseClass
 
 
 def test_new_from_str():

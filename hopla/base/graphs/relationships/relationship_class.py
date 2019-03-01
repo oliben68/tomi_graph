@@ -4,16 +4,20 @@ from copy import deepcopy
 from enum import Enum
 from uuid import uuid4
 
+from hopla.base.graphs.graph_entity_class_generator import GraphEntityClassGenerator
 from hopla.base.graphs.graphs.graph import Graph
-from hopla.base.graphs.nodes.core.node import BaseNode
+from hopla.base.graphs.indexes_support import IndexesSupport
+from hopla.base.graphs.nodes.core.node import CoreNodeClass
 from hopla.base.graphs.operators import GraphOperationDirection, GraphOperation
 from hopla.base.graphs.operators.operator_resolver import OperatorsResolver
-from hopla.base.graphs.relationships.core import Direction, RelationType, Protection
-from hopla.base.graphs.relationships.core.relationship import BaseRelationship
+from hopla.base.graphs.relationships.core.direction import Direction
+from hopla.base.graphs.relationships.core.protection import Protection
+from hopla.base.graphs.relationships.core.relation_type import RelationType
+from hopla.base.graphs.relationships.core.relationship import CoreRelationshipClass
 from hopla.base.graphs.relationships.exceptions import CoreRelationshipException
 
 
-class Relationship(OperatorsResolver, BaseRelationship):
+class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
     def clone(self, new=None):
         return deepcopy(self)
 
@@ -42,7 +46,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
 
     @property
     def rel_type(self):
-        return self._rel_type
+        return type(self).__name__
 
     def return_entity_value(self, attribute_name):
         if getattr(self, attribute_name, None) is None:
@@ -74,23 +78,26 @@ class Relationship(OperatorsResolver, BaseRelationship):
     def protection(self):
         return self._protection
 
+    @property
+    def unique_index(self):
+        return ":".join([type(self).__name__, self._id])
+
     def to_graph(self):
         graph = Graph(Graph.NAMESPACE_DELIMITER)
         graph.add_relationship(self)
 
         return graph
 
-    def __init__(self, node_1, node_2, name=None, rel_type=None, direction=None, protection=None, **kwargs):
+    def __init__(self, node_1, node_2, name=None, direction=None, protection=None, **data):
         self._id = str(uuid4())
         self._name = str(name) if name is not None else None
         self._version = 0
         self._node_1 = weakref.ref(node_1)
         self._node_2 = weakref.ref(node_2)
         self._protection = protection if type(protection) == Protection else Protection.NONE
-        self._rel_type = Relationship.__name__.upper() if rel_type is None or type(
-            rel_type) != str else rel_type.upper()
+        self._rel_type = type(self).__name__
         self._direction = direction if type(direction) == Direction else Direction.NONE
-        self._data = kwargs
+        self._data = data
 
     def toDict(self):
         def value(v):
@@ -98,7 +105,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 return v.name
             elif type(v) == weakref.ReferenceType:
                 entity = v()
-                return entity.toDict() if issubclass(type(entity), BaseNode) else None
+                return entity.toDict() if issubclass(type(entity), CoreNodeClass) else None
             else:
                 return v
 
@@ -112,12 +119,23 @@ class Relationship(OperatorsResolver, BaseRelationship):
         return str(self.toDict())
 
     def __call__(self, name=None, rel_type=None, data=None):
-        self._rel_type = self._rel_type if rel_type is None or type(rel_type) not in [
-            str, RelationType] else rel_type.upper()
-        self._data = self._data if not isinstance(data, MutableMapping) else data
-        self._name = str(name) if name is not None else self._name
+        if rel_type is not None and type(rel_type) == str:
+            relationship_class = RelationshipClassGenerator.create(entity_type=rel_type)
+            data = data if data is not None else self._data
+            new_relationship = relationship_class(self.node_1, self.node_2, name=self.name, direction=self.direction,
+                                                  protection=self.protection, **data)
+            print("*"*80)
+            print(new_relationship.rel_type)
+            print("*"*80)
 
-        return self
+            return new_relationship
+        else:
+            self._rel_type = self._rel_type if rel_type is None or type(rel_type) not in [
+                str, RelationType] else rel_type
+            self._data = self._data if not isinstance(data, MutableMapping) else data
+            self._name = str(name) if name is not None else self._name
+
+            return self
 
     def __reset__(self):
         self._id = None
@@ -136,18 +154,18 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 graph.add_node(self.node_2)
                 graph.add_node(other)
                 graph.add_relationship(self)
-                graph.add_relationship(Relationship(self.node_2, other))
+                graph.add_relationship(RelationshipBaseClass(self.node_2, other))
                 return graph
             if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
                 graph = Graph(Graph.NAMESPACE_DELIMITER)
                 graph.add_relationship(self)
                 graph.add_relationship(other)
-                graph.add_relationship(Relationship(self.node_2, other.node_1))
+                graph.add_relationship(RelationshipBaseClass(self.node_2, other.node_1))
                 return graph
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
                                                                                             self=type(self).__name__,
-                                                                                            other=type(other).__name))
+                                                                                            other=type(other).__name__))
         if operation == GraphOperation.LINK_LEFT_RIGHT:
             operator = ">"
             if direction == GraphOperationDirection.RELATIONSHIP_ENTITY:
@@ -156,7 +174,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 graph.add_node(self.node_2)
                 graph.add_node(other)
                 graph.add_relationship(self)
-                graph.add_relationship(Relationship(self.node_2, other, direction=Direction.LEFT_TO_RIGHT))
+                graph.add_relationship(RelationshipBaseClass(self.node_2, other, direction=Direction.LEFT_TO_RIGHT))
                 return Graph
             if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
                 graph = Graph(Graph.NAMESPACE_DELIMITER)
@@ -166,12 +184,13 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 graph.add_node(other.node_2)
                 graph.add_relationship(self)
                 graph.add_relationship(other)
-                graph.add_relationship(Relationship(self.node_2, other.node_1, direction=Direction.LEFT_TO_RIGHT))
+                graph.add_relationship(
+                    RelationshipBaseClass(self.node_2, other.node_1, direction=Direction.LEFT_TO_RIGHT))
                 return graph
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
                                                                                             self=type(self).__name__,
-                                                                                            other=type(other).__name))
+                                                                                            other=type(other).__name__))
         if operation == GraphOperation.LINK_RIGHT_LEFT:
             operator = "<"
             if direction == GraphOperationDirection.RELATIONSHIP_ENTITY:
@@ -180,7 +199,7 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 graph.add_node(self.node_2)
                 graph.add_node(other)
                 graph.add_relationship(self)
-                graph.add_relationship(Relationship(self.node_2, other, direction=Direction.RIGHT_TO_LEFT))
+                graph.add_relationship(RelationshipBaseClass(self.node_2, other, direction=Direction.RIGHT_TO_LEFT))
                 return graph
             if direction == GraphOperationDirection.RELATIONSHIP_RELATIONSHIP:
                 graph = Graph(Graph.NAMESPACE_DELIMITER)
@@ -190,9 +209,33 @@ class Relationship(OperatorsResolver, BaseRelationship):
                 graph.add_node(other.node_2)
                 graph.add_relationship(self)
                 graph.add_relationship(other)
-                graph.add_relationship(Relationship(self.node_2, other.node_1, direction=Direction.RIGHT_TO_LEFT))
+                graph.add_relationship(
+                    RelationshipBaseClass(self.node_2, other.node_1, direction=Direction.RIGHT_TO_LEFT))
                 return graph
             raise TypeError(
                 "Unsupported operand type(s) for {operator}: '{self}' and '{other}'".format(operator=operator,
-                                                                                            self=type(self).__name,
-                                                                                            other=type(other).__name))
+                                                                                            self=type(self).__name__,
+                                                                                            other=type(other).__name__))
+
+
+class RelationshipClassGenerator(GraphEntityClassGenerator):
+    @staticmethod
+    def create(entity_type=None, indexes=None):
+        new_class = type(
+            entity_type if type(entity_type) == str else RelationshipBaseClass.__name__, (RelationshipBaseClass,), {})
+
+        def idx_fields(cls):
+            idxs = {}
+            if issubclass(type(indexes), MutableMapping):
+                for idx, fields in indexes.items():
+                    valid_fields = [field for field in set(fields) if type(field) == str and field in dir(new_class)]
+                    if len(valid_fields) > 0:
+                        idxs[idx] = valid_fields
+            return idxs
+
+        setattr(new_class, IndexesSupport.INDEXES_CLASS_METHOD, classmethod(idx_fields))
+
+        return new_class
+
+
+Relationship = RelationshipClassGenerator.create()
