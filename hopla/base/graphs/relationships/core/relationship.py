@@ -2,11 +2,9 @@ from abc import abstractmethod
 
 from hopla.base.graphs.base_graph_entity import BaseGraphEntity
 from hopla.base.graphs.entity_category import EntityCategory
-from hopla.base.graphs.indexes_support import IndexesSupport
-from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 
 
-class CoreRelationshipClass(BaseGraphEntity, VersionAwareEntity, IndexesSupport):
+class CoreRelationshipClass(BaseGraphEntity):
     category = EntityCategory.RELATIONSHIP
 
     @property

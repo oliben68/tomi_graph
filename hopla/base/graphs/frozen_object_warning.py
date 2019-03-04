@@ -1,2 +1,0 @@
-class FrozenObjectWarning(Warning):
-    pass

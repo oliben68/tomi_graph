@@ -2,7 +2,7 @@ import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from hopla.base.graphs.frozen_object_warning import FrozenObjectWarning
+from hopla.base.graphs.frozen_entity_warning import FrozenEntityWarning
 
 
 class VersionAwareEntity(ABC):
@@ -10,7 +10,7 @@ class VersionAwareEntity(ABC):
     def frozen(self):
         if not hasattr(self, "_frozen"):
             object.__setattr__(self, "_frozen", False)
-        return self._frozen
+        return getattr(self, "_frozen", False)
 
     @abstractmethod
     def clone(self, new=None):
@@ -20,8 +20,8 @@ class VersionAwareEntity(ABC):
         if name == "_frozen":
             return
         try:
-            if self._frozen:
-                warnings.warn("frozen", FrozenObjectWarning)
+            if getattr(self, "_frozen", False):
+                warnings.warn("frozen", FrozenEntityWarning)
                 return
         except AttributeError:
             object.__setattr__(self, "_frozen", False)
@@ -41,10 +41,10 @@ class VersionAwareEntity(ABC):
             clone._version += 1
         except TypeError:
             try:
-                self._version = int(self._version)
+                setattr(self, "_version", int(getattr(self, "_version", 0)))
             except ValueError:
                 setattr(self, "_version", 0)
-            clone._version = self._version + 1
+            clone._version = getattr(self, "_version", 0) + 1
         self.freeze()
 
         if data is not None:

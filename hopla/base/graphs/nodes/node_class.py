@@ -1,6 +1,6 @@
 import uuid
 import warnings
-from collections.abc import MutableSequence, MutableMapping
+from collections.abc import MutableSequence
 from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -12,6 +12,7 @@ from objectpath import Tree
 from py._path.local import LocalPath
 
 from hopla.base.collections import get_defaults, flatten
+from hopla.base.graphs.entity_class_generator import EntityClassGenerator
 from hopla.base.graphs.graphs.graph import Graph
 from hopla.base.graphs.graphs.node_data_graph import NodeDataGraph
 from hopla.base.graphs.indexes_support import IndexesSupport
@@ -22,6 +23,7 @@ from hopla.base.graphs.operators import GraphOperationDirection, GraphOperation
 from hopla.base.graphs.operators.operator_resolver import OperatorsResolver
 from hopla.base.graphs.relationships.core.direction import Direction
 from hopla.base.graphs.relationships.relationship_class import Relationship
+from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 from hopla.base.shared.logging.auto.logging import auto_log
 
 
@@ -104,6 +106,20 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
     @property
     def unique_index(self):
         return ":".join([type(self).__name__, self._core_id])
+
+    @property
+    def dictionary(self):
+        return {
+            "id": self.core_id,
+            "version": self.version,
+            "name": self.name,
+            "key": str(self.key) if self.key is not None else None,
+            "encoding": self.encoding,
+            "create_date": self.create_date,
+            "update_date": self.update_date,
+            "ttl": self.ttl,
+            "data": NodeBaseClass._to_dict(self.get_data()),
+        }
 
     def to_graph(self):
         return self.graph
@@ -260,7 +276,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
         o = loads(string_value)
 
         if type(o) == dict and {"__type", "__object"} == set(o.keys()):
-            return NodeBaseClass.from_str(dumps(o["__object"]), new=new_instance)
+            return NodeBaseClass.from_str(dumps(o["__object"]), new=new_instance, node_type=o["__type"])
 
         if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) == set(o.keys()):
             core_id = str(uuid.uuid4()) if new_instance else o["__id"]
@@ -269,8 +285,12 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                 doc = NodeBaseClass(o["__data"], core_id=core_id,
                                     encoding=o["__encoding"], key=o["__key"], name=o["__name"], )
             else:
-                doc = NodeClassGenerator()(o["__data"], node_type=node_type, core_id=core_id,
-                                           encoding=o["__encoding"], key=o["__key"], name=o["__name"])
+                doc = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create(node_type)(
+                    o["__data"],
+                    core_id=core_id,
+                    encoding=o["__encoding"],
+                    key=o["__key"],
+                    name=o["__name"])
 
             if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
                 doc.set_data(NodeBaseClass.from_str(dumps(o["__data"]["__object"]), new=new_instance))
@@ -366,23 +386,4 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                 return None
 
 
-class NodeClassGenerator(object):
-    @staticmethod
-    def create(entity_type=None, indexes=None):
-        new_class = type(entity_type if type(entity_type) == str else NodeBaseClass.__name__, (NodeBaseClass,), {})
-
-        def idx_fields(cls):
-            idxs = {}
-            if issubclass(type(indexes), MutableMapping):
-                for idx, fields in indexes.items():
-                    valid_fields = [field for field in set(fields) if type(field) == str and field in dir(new_class)]
-                    if len(valid_fields) > 0:
-                        idxs[idx] = valid_fields
-            return idxs
-
-        setattr(new_class, IndexesSupport.INDEXES_CLASS_METHOD, classmethod(idx_fields))
-
-        return new_class
-
-
-Node = NodeClassGenerator.create()
+Node = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create()

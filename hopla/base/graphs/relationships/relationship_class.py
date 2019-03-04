@@ -4,7 +4,7 @@ from copy import deepcopy
 from enum import Enum
 from uuid import uuid4
 
-from hopla.base.graphs.graph_entity_class_generator import GraphEntityClassGenerator
+from hopla.base.graphs.entity_class_generator import EntityClassGenerator
 from hopla.base.graphs.graphs.graph import Graph
 from hopla.base.graphs.indexes_support import IndexesSupport
 from hopla.base.graphs.nodes.core.node import CoreNodeClass
@@ -15,6 +15,7 @@ from hopla.base.graphs.relationships.core.protection import Protection
 from hopla.base.graphs.relationships.core.relation_type import RelationType
 from hopla.base.graphs.relationships.core.relationship import CoreRelationshipClass
 from hopla.base.graphs.relationships.exceptions import CoreRelationshipException
+from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 
 
 class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
@@ -120,13 +121,14 @@ class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
 
     def __call__(self, name=None, rel_type=None, data=None):
         if rel_type is not None and type(rel_type) == str:
-            relationship_class = RelationshipClassGenerator.create(entity_type=rel_type)
+            relationship_class = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity,
+                                                      IndexesSupport).create(entity_type=rel_type)
             data = data if data is not None else self._data
             new_relationship = relationship_class(self.node_1, self.node_2, name=self.name, direction=self.direction,
                                                   protection=self.protection, **data)
-            print("*"*80)
+            print("*" * 80)
             print(new_relationship.rel_type)
-            print("*"*80)
+            print("*" * 80)
 
             return new_relationship
         else:
@@ -218,24 +220,4 @@ class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
                                                                                             other=type(other).__name__))
 
 
-class RelationshipClassGenerator(GraphEntityClassGenerator):
-    @staticmethod
-    def create(entity_type=None, indexes=None):
-        new_class = type(
-            entity_type if type(entity_type) == str else RelationshipBaseClass.__name__, (RelationshipBaseClass,), {})
-
-        def idx_fields(cls):
-            idxs = {}
-            if issubclass(type(indexes), MutableMapping):
-                for idx, fields in indexes.items():
-                    valid_fields = [field for field in set(fields) if type(field) == str and field in dir(new_class)]
-                    if len(valid_fields) > 0:
-                        idxs[idx] = valid_fields
-            return idxs
-
-        setattr(new_class, IndexesSupport.INDEXES_CLASS_METHOD, classmethod(idx_fields))
-
-        return new_class
-
-
-Relationship = RelationshipClassGenerator.create()
+Relationship = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity, IndexesSupport).create()

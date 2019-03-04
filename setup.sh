@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 ROOT=tomi
-PROJECT=${ROOT}_base
+COMPONENT=base
+PROJECT=${ROOT}_${COMPONENT}
 
 rm -rf /Users/oliviersteck/Documents/sources/python/${ROOT}/${PROJECT}/build
 
@@ -12,7 +13,7 @@ pip_bin=/usr/local/anaconda3/envs/vanilla/bin/pip
 ${pip_bin} uninstall ${PROJECT} -y
 ${pip_bin} install .
 ${python_bin} setup.py config --config-dir /Users/oliviersteck/Documents/sources/python/${ROOT}/${PROJECT}/resources/config
-${python_bin}  setup.py install --force; python setup.py test
+${python_bin} setup.py install --force; python setup.py test
 echo "---------------------------------------------------------------------------------------------------------------------------------------"
 
 echo
@@ -23,6 +24,6 @@ python_bin=/usr/local/anaconda3/envs/hopla/bin/python
 pip_bin=/usr/local/anaconda3/envs/hopla/bin/pip
 ${pip_bin} uninstall ${PROJECT} -y
 ${pip_bin} install .
-${python_bin}  setup.py config --config-dir /Users/oliviersteck/Documents/sources/python/${ROOT}/${PROJECT}/resources/config
-${python_bin}  setup.py install --force; python setup.py test
+${python_bin} setup.py config --config-dir /Users/oliviersteck/Documents/sources/python/${ROOT}/${PROJECT}/resources/config
+${python_bin} setup.py install --force; python setup.py test
 echo "---------------------------------------------------------------------------------------------------------------------------------------"

@@ -1,12 +1,15 @@
+from hopla.base.graphs.entity_class_generator import EntityClassGenerator
 from hopla.base.graphs.indexes_support import IndexesSupport
-from hopla.base.graphs.nodes.node_class import NodeClassGenerator
+from hopla.base.graphs.nodes.node_class import NodeBaseClass
+from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 
 
 def test_node_valid_indexes():
     classname = "NewNode"
     indexes = {"index": ["core_id"]}
 
-    NewNode = NodeClassGenerator.create(entity_type=classname, indexes=indexes)
+    NewNode = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create(entity_type=classname,
+                                                                                             indexes=indexes)
 
     assert NewNode.__name__ == classname
     assert hasattr(NewNode, "indexes")
@@ -20,7 +23,8 @@ def test_node_invalid_index():
     classname = "NewNode"
     indexes = {"index": [""]}
 
-    NewNode = NodeClassGenerator.create(entity_type=classname, indexes=indexes)
+    NewNode = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create(entity_type=classname,
+                                                                                             indexes=indexes)
 
     assert NewNode.__name__ == classname
     assert hasattr(NewNode, "indexes")
@@ -28,4 +32,3 @@ def test_node_invalid_index():
 
     assert len(NewNode().indexes) == 1
     assert len(getattr(NewNode, IndexesSupport.INDEXES_CLASS_METHOD)()) == 0
-

@@ -1,5 +1,5 @@
 package:
-    name: tomi_base
+    name: hopla
     version: 0.1.0
     configuration_pkg: config
     tests: pytest

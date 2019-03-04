@@ -3,11 +3,9 @@ from ujson import dumps
 
 from hopla.base.graphs.base_graph_entity import BaseGraphEntity
 from hopla.base.graphs.entity_category import EntityCategory
-from hopla.base.graphs.indexes_support import IndexesSupport
-from hopla.base.graphs.version_aware_entity import VersionAwareEntity
 
 
-class CoreNodeClass(BaseGraphEntity, VersionAwareEntity, IndexesSupport):
+class CoreNodeClass(BaseGraphEntity):
     category = EntityCategory.NODE
 
     @property
