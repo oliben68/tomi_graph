@@ -4,7 +4,7 @@ import sys
 import yaml
 from setuptools import find_packages
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
+from setuptools.command.test import test as test_command
 
 
 def _load_setup_info():
@@ -17,12 +17,12 @@ TESTING = SETUP_INFO["tests"]
 CONF_PKG = SETUP_INFO["configuration_pkg"]
 
 
-class PyTest(TestCommand):
+class PyTest(test_command):
     user_options = [("pytest-args=", "a", "Arguments to pass to pytest")]
 
-    def initialize_options(self):
-        TestCommand.initialize_options(self)
-        self.pytest_args = SETUP_INFO["testing"][TESTING]["args"].format(name=SETUP_INFO["name"])
+    def initialize_options(me):
+        test_command.initialize_options(me)
+        me.pytest_args = SETUP_INFO["testing"][TESTING]["args"].format(name=SETUP_INFO["name"])
 
     def run_tests(self):
         import shlex

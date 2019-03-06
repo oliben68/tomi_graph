@@ -1,2 +1,0 @@
-class CoreRelationshipException(Exception):
-    pass

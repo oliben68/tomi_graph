@@ -1,8 +1,8 @@
-from tomi_base.base.graphs.graphs.graph import Graph
-from tomi_base.base.graphs.graphs.node_data_graph import NodeDataGraph
-from tomi_base.base.graphs.nodes.node_class import NodeBaseClass
-from tomi_base.base.graphs.relationships.core.direction import Direction
-from tomi_base.base.graphs.relationships.relationship_class import Relationship, RelationshipBaseClass
+from tomi_base.graphs.graphs.graph import Graph
+from tomi_base.graphs.graphs.node_data_graph import NodeDataGraph
+from tomi_base.graphs.nodes.node_class import NodeBaseClass
+from tomi_base.graphs.relationships.core.direction import Direction
+from tomi_base.graphs.relationships.relationship_class import Relationship, RelationshipBaseClass
 
 
 def test_graph():

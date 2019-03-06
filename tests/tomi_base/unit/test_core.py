@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from testfixtures import LogCapture
 
-from tomi_base.base.graphs.nodes.core import DEFAULT_ENCODING
-from tomi_base.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
-from tomi_base.base.graphs.nodes.node_class import Node, NodeBaseClass
-from tomi_base.base.shared.logging import create_logger
-from tomi_base.base.shared.logging.auto.logging import auto_log
+from tomi_base.graphs.nodes.core import DEFAULT_ENCODING
+from tomi_base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from tomi_base.graphs.nodes.node_class import Node, NodeBaseClass
+from tomi_base.shared.logging import create_logger
+from tomi_base.shared.logging.auto.logging import auto_log
 
 globals()["cache"] = {}
 
@@ -202,8 +202,8 @@ def test_children():
 
 
 def test_logger_warn(capture_logs):
-    l = create_logger()
-    l.warn("WARN")
+    log = create_logger()
+    log.warn("WARN")
 
     assert str(capture_logs) != "No logging captured"
 

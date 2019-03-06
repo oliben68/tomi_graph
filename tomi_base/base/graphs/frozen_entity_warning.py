@@ -1,2 +1,0 @@
-class FrozenEntityWarning(Warning):
-    pass
