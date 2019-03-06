@@ -1,8 +1,11 @@
 import inspect
 from collections.abc import MutableMapping
-
-from tomi_base.base.graphs.entity_class_registry import EntityClassRegistry
 from tomi_base.base.graphs.indexes_support import IndexesSupport
+from tomi_base.base.shared.meta_singleton import MetaSingleton
+
+
+class EntityClassRegistry(dict, metaclass=MetaSingleton):
+    pass
 
 
 class EntityClassGenerator(object):
