@@ -5,11 +5,11 @@ from uuid import uuid4
 import pytest
 from testfixtures import LogCapture
 
-from hopla.base.graphs.nodes.core import DEFAULT_ENCODING
-from hopla.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
-from hopla.base.graphs.nodes.node_class import Node, NodeBaseClass
-from hopla.base.shared.logging import create_logger
-from hopla.base.shared.logging.auto.logging import auto_log
+from tomi_base.base.graphs.nodes.core import DEFAULT_ENCODING
+from tomi_base.base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from tomi_base.base.graphs.nodes.node_class import Node, NodeBaseClass
+from tomi_base.base.shared.logging import create_logger
+from tomi_base.base.shared.logging.auto.logging import auto_log
 
 globals()["cache"] = {}
 
@@ -218,7 +218,7 @@ def test_logger_catch_exception(capture_logs):
         method()
 
         capture_logs.check(
-            ('hopla.', 'ERROR', 'message'),
+            ('tomi_base.', 'ERROR', 'message'),
         )
 
 
@@ -231,7 +231,7 @@ def test_logger_catch_exception_defautls(capture_logs):
         method()
 
         capture_logs.check(
-            ('hopla.', 'ERROR', 'message'),
+            ('tomi_base.', 'ERROR', 'message'),
         )
 
 

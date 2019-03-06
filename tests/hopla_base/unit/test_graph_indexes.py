@@ -1,7 +1,7 @@
-from hopla.base.graphs.entity_class_generator import EntityClassGenerator
-from hopla.base.graphs.indexes_support import IndexesSupport
-from hopla.base.graphs.nodes.node_class import NodeBaseClass
-from hopla.base.graphs.version_aware_entity import VersionAwareEntity
+from tomi_base.base.graphs.entity_class_generator import EntityClassGenerator
+from tomi_base.base.graphs.indexes_support import IndexesSupport
+from tomi_base.base.graphs.nodes.node_class import NodeBaseClass
+from tomi_base.base.graphs.version_aware_entity import VersionAwareEntity
 
 
 def test_node_valid_indexes():
