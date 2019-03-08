@@ -1,15 +1,16 @@
 import ujson
 from copy import deepcopy
-from ujson import loads
 
 from objectpath import Tree
 
+from tomi_base.graphs.entity_class_generator import EntityClassGenerator
 from tomi_base.graphs.graphs.graph import Graph
+from tomi_base.graphs.indexes_support import IndexesSupport
 from tomi_base.graphs.nodes.core.node import CoreNodeClass
-from tomi_base.graphs.relationships.core import NULL_VAL
 from tomi_base.graphs.relationships.core.protection import Protection
 from tomi_base.graphs.relationships.core.relation_type import RelationType
 from tomi_base.graphs.relationships.relationship_class import RelationshipBaseClass
+from tomi_base.graphs.version_aware_entity import VersionAwareEntity
 
 
 class NodeDataGraph(Graph):
@@ -20,7 +21,7 @@ class NodeDataGraph(Graph):
         def to_id(d):
             if issubclass(type(d), CoreNodeClass):
                 return {
-                    "__type": d.node_type,
+                    "__type": type(d).__name__,
                     "__id": d.core_id
                 }
             return d
@@ -52,15 +53,10 @@ class NodeDataGraph(Graph):
             if hasattr(tree, "data"):
                 for ref in list(
                         tree.execute('$..*[@.__type and @.__id]')):
-                    self._relationships.append(RelationshipBaseClass(
-                        node_1=self._nodes[v.core_id],
-                        node_2=self._nodes[ref["__id"]],
-                        rel_type=self._rel_type,
-                        protection=Protection.PRESERVE))
-
-    def _refs(self, core_id):
-        tree = Tree(loads(str(self._nodes[core_id])))
-        return list(tree.execute('$..*[@.__type is "BaseEntity" and @.__id]'))
+                    rel_type = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity, IndexesSupport).create(
+                        self._rel_type)
+                    self._relationships.append(rel_type(node_1=self._nodes[v.core_id], node_2=self._nodes[ref["__id"]],
+                                                        rel_type=self._rel_type, protection=Protection.PRESERVE))
 
     def _assemble(self, entity):
 
@@ -166,10 +162,8 @@ class NodeDataGraph(Graph):
         super().__init__(namespace_root=NodeDataGraph.NAMESPACE_DELIMITER)
         if not issubclass(type(doc), CoreNodeClass):
             raise TypeError("Argument doc must be a class inheriting from {base}".format(base=CoreNodeClass.__name__))
-        # self._id = str(uuid4())
+
         self._root_node = doc if do_not_clone else deepcopy(doc)
-        # self._relationships = []
-        # self._entities = {}
         self._namespace_map = None
 
         if rel_type is None or type(rel_type) not in (str, RelationType):
@@ -184,12 +178,6 @@ class NodeDataGraph(Graph):
 
     def __str__(self):
         return str(self.toDict())
-
-    def search_relationships(self, name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL):
-        pass
-
-    def search_entities(self, node_type=None, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1):
-        pass
 
     @staticmethod
     def erase(self, obj):

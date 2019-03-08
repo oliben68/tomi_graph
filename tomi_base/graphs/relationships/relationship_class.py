@@ -126,10 +126,6 @@ class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
             data = data if data is not None else self._data
             new_relationship = relationship_class(self.node_1, self.node_2, name=self.name, direction=self.direction,
                                                   protection=self.protection, **data)
-            print("*" * 80)
-            print(new_relationship.rel_type)
-            print("*" * 80)
-
             return new_relationship
         else:
             self._rel_type = self._rel_type if rel_type is None or type(rel_type) not in [

@@ -72,7 +72,7 @@ class Graph(OperatorsResolver, BaseGraph):
         for relationship in graph.relationships:
             target.add_relationship(relationship, target=target)
 
-        print("NAMSAPCE MPA", graph.namespace_map is not None and len(graph.namespace_map) > 0)
+        print("NAMESPACE", graph.namespace_map is not None and len(graph.namespace_map) > 0)
         if graph.namespace_map is not None and len(graph.namespace_map) > 0:
             target.namespace_map.update(graph.namespace_map)
 

@@ -8,3 +8,4 @@ class EntityCategory(Enum):
     RELATIONSHIP = 4
     INDEX = 8
     GRAPH = 16
+    CONSTRAINT=32

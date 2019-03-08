@@ -118,7 +118,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
             "create_date": self.create_date,
             "update_date": self.update_date,
             "ttl": self.ttl,
-            "data": NodeBaseClass._to_dict(self.get_data()),
+            "data": NodeBaseClass.to_dict(self.get_data()),
         }
 
     def to_graph(self):
@@ -211,7 +211,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
         return hash(str(self))
 
     @staticmethod
-    def _to_dict(o):
+    def to_dict(o):
         def dict_format(d):
             return {
                 "__type": type(d).__name__,
@@ -224,7 +224,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                     "__create_date": d.create_date,
                     "__update_date": d.update_date,
                     "__ttl": d.ttl,
-                    "__data": NodeBaseClass._to_dict(d.get_data()),
+                    "__data": NodeBaseClass.to_dict(d.get_data()),
                 }
             }
 
@@ -237,13 +237,13 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                     if issubclass(type(v), CoreNodeClass):
                         o[k] = dict_format(v)
                     else:
-                        o[k] = NodeBaseClass._to_dict(v)
+                        o[k] = NodeBaseClass.to_dict(v)
             elif issubclass(type(o), list) or type(o) == list:
                 for idx, v in enumerate(o):
                     if issubclass(type(v), CoreNodeClass):
                         o[idx] = dict_format(v)
                     else:
-                        o[idx] = NodeBaseClass._to_dict(v)
+                        o[idx] = NodeBaseClass.to_dict(v)
             return o
         except TypeError:
             if issubclass(type(o), CoreNodeClass):
@@ -253,12 +253,11 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
 
     def children(self):
         tree = Tree(loads(str(self)))
-        return [NodeBaseClass.from_str(dumps(d["__object"])) for d in
-                list(tree.execute('$..*[@.__type and @.__object]')) if
-                d["__object"]["__id"] != self.core_id]
+        return [type(self).from_str(dumps(d["__object"]), node_type=d["__type"] if "__type" in d.keys() else None)
+                for d in list(tree.execute('$..*[@.__type and @.__object]')) if d["__object"]["__id"] != self.core_id]
 
     def toDict(self):
-        return NodeBaseClass._to_dict(deepcopy(self))
+        return NodeBaseClass.to_dict(deepcopy(self))
 
     def clone(self, new=None):
         cloned = deepcopy(self)
@@ -293,7 +292,8 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                     name=o["__name"])
 
             if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
-                doc.set_data(NodeBaseClass.from_str(dumps(o["__data"]["__object"]), new=new_instance))
+                doc.set_data(
+                    NodeBaseClass.from_str(dumps(o["__data"]["__object"]), new=new_instance))
             else:
                 doc.set_data(NodeBaseClass.from_str(dumps(o["__data"])))
 
@@ -304,7 +304,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
             return doc
 
         if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) != set(o.keys()):
-            return {k: NodeBaseClass.from_str(dumps(v), new=new_instance) for k, v in o.items()}
+            return {k: NodeBaseClass.from_str(dumps(v), new=new_instance, ) for k, v in o.items()}
 
         if type(o) == list:
             return [NodeBaseClass.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
