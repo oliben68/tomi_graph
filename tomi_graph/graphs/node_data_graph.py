@@ -3,14 +3,14 @@ from copy import deepcopy
 
 from objectpath import Tree
 
-from tomi_base.graphs.entity_class_generator import EntityClassGenerator
-from tomi_base.graphs.graphs.graph import Graph
-from tomi_base.graphs.indexes_support import IndexesSupport
-from tomi_base.graphs.nodes.core.node import CoreNodeClass
-from tomi_base.graphs.relationships.core.protection import Protection
-from tomi_base.graphs.relationships.core.relation_type import RelationType
-from tomi_base.graphs.relationships.relationship_class import RelationshipBaseClass
-from tomi_base.graphs.version_aware_entity import VersionAwareEntity
+from tomi_graph.entity_class_generator import EntityClassGenerator
+from tomi_graph.graphs.graph import Graph
+from tomi_graph.indexes_support import IndexesSupport
+from tomi_graph.nodes.core.node import CoreNodeClass
+from tomi_graph.relationships.core.protection import Protection
+from tomi_graph.relationships.core.relation_type import RelationType
+from tomi_graph.relationships.relationship_class import RelationshipBaseClass
+from tomi_graph.version_aware_entity import VersionAwareEntity
 
 
 class NodeDataGraph(Graph):
@@ -128,7 +128,7 @@ class NodeDataGraph(Graph):
         return self.root_node.core_id
 
     @property
-    def graph(self):
+    def dictionary(self):
         return self.toDict()
 
     @property

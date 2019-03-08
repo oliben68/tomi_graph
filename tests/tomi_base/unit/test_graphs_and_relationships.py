@@ -1,8 +1,8 @@
-from tomi_base.graphs.graphs.graph import Graph
-from tomi_base.graphs.graphs.node_data_graph import NodeDataGraph
-from tomi_base.graphs.nodes.node_class import NodeBaseClass
-from tomi_base.graphs.relationships.core.direction import Direction
-from tomi_base.graphs.relationships.relationship_class import Relationship, RelationshipBaseClass
+from tomi_graph.graphs.graph import Graph
+from tomi_graph.graphs.node_data_graph import NodeDataGraph
+from tomi_graph.nodes.node_class import NodeBaseClass
+from tomi_graph.relationships.core.direction import Direction
+from tomi_graph.relationships.relationship_class import Relationship, RelationshipBaseClass
 
 
 def test_graph():
@@ -26,9 +26,9 @@ def test_complex_graph():
     assert g.root_node != root
     assert len(g.nodes) == len(ids)
     assert len(g.relationships) == len(ids) - 1
-    assert g.graph
-    assert len(g.graph["__nodes"]) == len(ids)
-    assert len(g.graph["__relationships"]) == len(ids) - 1
+    assert g.dictionary
+    assert len(g.dictionary["__nodes"]) == len(ids)
+    assert len(g.dictionary["__relationships"]) == len(ids) - 1
     assert len(g.namespace_map) == len(ids)
 
 

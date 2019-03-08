@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ROOT=tomi
-COMPONENT=base
+COMPONENT=graph
 PROJECT=${ROOT}_${COMPONENT}
 
 rm -rf /Users/oliviersteck/Documents/sources/python/${ROOT}/${PROJECT}/build

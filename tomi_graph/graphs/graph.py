@@ -1,10 +1,10 @@
 from uuid import uuid4
 
-from tomi_base.graphs.graphs.core.graph import BaseGraph
-from tomi_base.graphs.nodes.core.node import CoreNodeClass
-from tomi_base.graphs.operators import GraphOperationDirection, GraphOperation, DefaultValues
-from tomi_base.graphs.operators.operator_resolver import OperatorsResolver
-from tomi_base.graphs.relationships.core.relationship import CoreRelationshipClass
+from tomi_graph.graphs.core.graph import BaseGraph
+from tomi_graph.nodes.core.node import CoreNodeClass
+from tomi_graph.operators import GraphOperationDirection, GraphOperation, DefaultValues
+from tomi_graph.operators.operator_resolver import OperatorsResolver
+from tomi_graph.relationships.core.relationship import CoreRelationshipClass
 
 
 class Graph(OperatorsResolver, BaseGraph):

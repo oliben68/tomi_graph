@@ -5,9 +5,9 @@ from uuid import uuid4
 import pytest
 from testfixtures import LogCapture
 
-from tomi_base.graphs.nodes.core import DEFAULT_ENCODING
-from tomi_base.graphs.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
-from tomi_base.graphs.nodes.node_class import Node, NodeBaseClass
+from tomi_graph.nodes.core import DEFAULT_ENCODING
+from tomi_graph.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
+from tomi_graph.nodes.node_class import Node, NodeBaseClass
 from tomi_base.shared.logging import create_logger
 from tomi_base.shared.logging.auto.logging import auto_log
 

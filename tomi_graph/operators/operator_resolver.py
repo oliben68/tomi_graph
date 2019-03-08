@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from tomi_base.graphs.operators import xor_categories, GraphOperation, direction_from_val
+from tomi_graph.operators import xor_categories, GraphOperation, direction_from_val
 
 
 class OperatorsResolver(ABC):

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from tomi_base.graphs.entity_category import EntityCategory
+from tomi_graph.entity_category import EntityCategory
 
 
 class BaseGraphEntity(ABC):

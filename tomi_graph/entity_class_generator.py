@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import MutableMapping
 
-from tomi_base.graphs.indexes_support import IndexesSupport
+from tomi_graph.indexes_support import IndexesSupport
 from tomi_base.shared.meta_singleton import MetaSingleton
 
 

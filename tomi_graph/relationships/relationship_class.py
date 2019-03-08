@@ -4,18 +4,18 @@ from copy import deepcopy
 from enum import Enum
 from uuid import uuid4
 
-from tomi_base.graphs.entity_class_generator import EntityClassGenerator
-from tomi_base.graphs.graphs.graph import Graph
-from tomi_base.graphs.indexes_support import IndexesSupport
-from tomi_base.graphs.nodes.core.node import CoreNodeClass
-from tomi_base.graphs.operators import GraphOperationDirection, GraphOperation
-from tomi_base.graphs.operators.operator_resolver import OperatorsResolver
-from tomi_base.graphs.relationships.core.direction import Direction
-from tomi_base.graphs.relationships.core.protection import Protection
-from tomi_base.graphs.relationships.core.relation_type import RelationType
-from tomi_base.graphs.relationships.core.relationship import CoreRelationshipClass
-from tomi_base.graphs.relationships.exceptions import CoreRelationshipException
-from tomi_base.graphs.version_aware_entity import VersionAwareEntity
+from tomi_graph.entity_class_generator import EntityClassGenerator
+from tomi_graph.graphs.graph import Graph
+from tomi_graph.indexes_support import IndexesSupport
+from tomi_graph.nodes.core.node import CoreNodeClass
+from tomi_graph.operators import GraphOperationDirection, GraphOperation
+from tomi_graph.operators.operator_resolver import OperatorsResolver
+from tomi_graph.relationships.core.direction import Direction
+from tomi_graph.relationships.core.protection import Protection
+from tomi_graph.relationships.core.relation_type import RelationType
+from tomi_graph.relationships.core.relationship import CoreRelationshipClass
+from tomi_graph.relationships.exceptions import CoreRelationshipException
+from tomi_graph.version_aware_entity import VersionAwareEntity
 
 
 class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):

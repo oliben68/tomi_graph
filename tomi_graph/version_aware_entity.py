@@ -2,7 +2,7 @@ import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from tomi_base.graphs.frozen_entity_warning import FrozenEntityWarning
+from tomi_graph.frozen_entity_warning import FrozenEntityWarning
 
 
 class VersionAwareEntity(ABC):

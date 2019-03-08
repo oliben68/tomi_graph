@@ -1,7 +1,7 @@
 from enum import Enum
 
-from tomi_base.graphs.entity_category import EntityCategory
-from tomi_base.graphs.relationships.core import NULL_VAL
+from tomi_graph.entity_category import EntityCategory
+from tomi_graph.relationships.core import NULL_VAL
 
 
 def reverse(n):

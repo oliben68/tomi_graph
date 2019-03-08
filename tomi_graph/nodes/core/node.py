@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from ujson import dumps
 
-from tomi_base.graphs.base_graph_entity import BaseGraphEntity
-from tomi_base.graphs.entity_category import EntityCategory
+from tomi_graph.base_graph_entity import BaseGraphEntity
+from tomi_graph.entity_category import EntityCategory
 
 
 class CoreNodeClass(BaseGraphEntity):
