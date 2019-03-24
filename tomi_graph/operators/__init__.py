@@ -50,5 +50,5 @@ def direction_from_val(value):
 
 
 class DefaultValues(Enum):
-    ENTITY = dict(node_type=None, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1)
+    ENTITY = dict(node_type=None, id=None, encoding=None, key=None, name=None, data=None, ttl=-1)
     RELATIONSHIP = dict(name=None, rel_type=None, protection=None, data=None, on_gc_collect=NULL_VAL)

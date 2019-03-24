@@ -1,10 +1,10 @@
 from abc import abstractmethod
 
-from tomi_graph.base_graph_entity import BaseGraphEntity
+from tomi_graph.base_graph_entity import GraphEntity
 from tomi_graph.entity_category import EntityCategory
 
 
-class CoreRelationshipClass(BaseGraphEntity):
+class CoreRelationshipClass(GraphEntity):
     category = EntityCategory.RELATIONSHIP
 
     @property

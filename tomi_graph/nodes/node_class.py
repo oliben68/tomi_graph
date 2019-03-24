@@ -10,8 +10,9 @@ from ujson import loads, load, dumps
 import chardet
 from objectpath import Tree
 from py._path.local import LocalPath
-
 from tomi_base.collections import get_defaults, flatten
+from tomi_base.shared.logging.auto.logging import auto_log
+
 from tomi_graph.entity_class_generator import EntityClassGenerator
 from tomi_graph.graphs.graph import Graph
 from tomi_graph.graphs.node_data_graph import NodeDataGraph
@@ -24,27 +25,40 @@ from tomi_graph.operators.operator_resolver import OperatorsResolver
 from tomi_graph.relationships.core.direction import Direction
 from tomi_graph.relationships.relationship_class import Relationship
 from tomi_graph.version_aware_entity import VersionAwareEntity
-from tomi_base.shared.logging.auto.logging import auto_log
 
 
-class NodeBaseClass(OperatorsResolver, CoreNodeClass):
-    properties_mapping = {'__encoding': 'encoding',
-                          '__id': 'core_id',
-                          '__key': 'key',
-                          '__data': 'data',
-                          '__name': 'name',
-                          '__version': 'version',
-                          '__create_date': 'create_date',
-                          '__update_date': 'update_date',
-                          '__ttl': 'ttl'}
+class NodeBaseClass(OperatorsResolver, CoreNodeClass, IndexesSupport):
+    FIELD_SERIALIZATION_PREFIX = "__"
+
+    CORE_FIELDS = ["encoding", "id", "key", "data", "name", "version", "create_date", "update_date", "ttl"]
+
+    @staticmethod
+    def serialize(name):
+        return NodeBaseClass.FIELD_SERIALIZATION_PREFIX + name
+
+    @classmethod
+    def unique_constraint_name(cls, node_type=None):
+        return "{uq}_{type}".format(uq=IndexesSupport.UNIQUE_CONSTRAINT_PREFIX, type=cls.__name__) if type(
+            node_type) != str else "{uq}_{type}".format(uq=IndexesSupport.UNIQUE_CONSTRAINT_PREFIX, type=node_type)
+
+    @classmethod
+    def get_properties_mapping(cls, node_type=None):
+        props = {NodeBaseClass.serialize(field): field for field in NodeBaseClass.CORE_FIELDS}
+
+        props[NodeBaseClass.serialize(cls.unique_constraint_name(node_type=node_type))] = "unique_index"
+
+        for name in getattr(cls, "additional_fields", []):
+            props[name] = name # NodeBaseClass.serialize(name)
+
+        return props
 
     @property
     def node_type(self):
         return type(self).__name__
 
     @property
-    def core_id(self):
-        return self._core_id
+    def id(self):
+        return self._id
 
     @property
     def key(self):
@@ -103,14 +117,25 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
             self._graph = NodeDataGraph(self)
         return self._graph
 
+    @staticmethod
+    def get_unique_constraint_fields():
+        return ["id"]
+
     @property
     def unique_index(self):
-        return ":".join([type(self).__name__, self._core_id])
+        return NodeBaseClass.create_unique_index(self, self.get_unique_constraint_fields())
+
+    @property
+    def indexes_definitions(self):
+        indexes_def = type(self).get_type_indexes()
+        indexes_def[IndexesSupport.get_unique_constraint_name(type(self))] = self.get_unique_constraint_fields()
+        return indexes_def
 
     @property
     def dictionary(self):
-        return {
-            "id": self.core_id,
+        dictionary = {
+            "id": self.id,
+            'unique_index': self.unique_index,
             "version": self.version,
             "name": self.name,
             "key": str(self.key) if self.key is not None else None,
@@ -120,6 +145,10 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
             "ttl": self.ttl,
             "data": NodeBaseClass.to_dict(self.get_data()),
         }
+        for name in getattr(type(self), "additional_fields", []):
+            dictionary[name] = getattr(self, name, None)
+
+        return dictionary
 
     def to_graph(self):
         return self.graph
@@ -162,13 +191,13 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
         """
         self._new = True
 
-    def __init__(self, *args, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
+    def __init__(self, *args, id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
                  create_date=None, update_date=None, options=None):
         """
 
         :param args:
         :param node_type:
-        :param core_id:
+        :param id:
         :param encoding:
         :param key:
         :param name:
@@ -177,7 +206,7 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
         :param update_date:
         :param options:
         """
-        self._core_id = uuid.uuid4().hex if core_id is None else str(core_id)
+        self._id = uuid.uuid4().hex if id is None else str(id)
         self._encoding = DEFAULT_ENCODING if type(encoding) != str else encoding
         self._key = key
         self._name = name
@@ -213,19 +242,24 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
     @staticmethod
     def to_dict(o):
         def dict_format(d):
+            object_value = {
+                NodeBaseClass.serialize("id"): d.id,
+                NodeBaseClass.serialize(type(d).unique_constraint_name()): d.unique_index,
+                NodeBaseClass.serialize("version"): d.version,
+                NodeBaseClass.serialize("name"): d.name,
+                NodeBaseClass.serialize("key"): str(d.key) if d.key is not None else None,
+                NodeBaseClass.serialize("encoding"): d.encoding,
+                NodeBaseClass.serialize("create_date"): d.create_date,
+                NodeBaseClass.serialize("update_date"): d.update_date,
+                NodeBaseClass.serialize("ttl"): d.ttl,
+                NodeBaseClass.serialize("data"): NodeBaseClass.to_dict(d.get_data()),
+            }
+            for name in getattr(type(o), "additional_fields", []):
+                object_value[name] = getattr(o, name, None)
+
             return {
-                "__type": type(d).__name__,
-                "__object": {
-                    "__id": d.core_id,
-                    "__version": d.version,
-                    "__name": d.name,
-                    "__key": str(d.key) if d.key is not None else None,
-                    "__encoding": d.encoding,
-                    "__create_date": d.create_date,
-                    "__update_date": d.update_date,
-                    "__ttl": d.ttl,
-                    "__data": NodeBaseClass.to_dict(d.get_data()),
-                }
+                NodeBaseClass.serialize("type"): type(d).__name__,
+                NodeBaseClass.serialize("object"): object_value
             }
 
         if type(o) == str:
@@ -253,8 +287,14 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
 
     def children(self):
         tree = Tree(loads(str(self)))
-        return [type(self).from_str(dumps(d["__object"]), node_type=d["__type"] if "__type" in d.keys() else None)
-                for d in list(tree.execute('$..*[@.__type and @.__object]')) if d["__object"]["__id"] != self.core_id]
+        type_field = NodeBaseClass.serialize('type')
+        object_field = NodeBaseClass.serialize('object')
+        id_field = NodeBaseClass.serialize('id')
+
+        return [type(self).from_str(dumps(d[object_field]),
+                                    node_type=d[type_field] if type_field in d.keys() else None)
+                for d in list(tree.execute('$..*[@.' + type_field + ' and @.' + object_field + ']')) if
+                d[object_field][id_field] != self.id]
 
     def toDict(self):
         return NodeBaseClass.to_dict(deepcopy(self))
@@ -269,45 +309,88 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
 
         return cloned
 
-    @staticmethod
-    def from_str(string_value, new=None, node_type=None):
+    @classmethod
+    def from_str(cls, string_value, new=None, node_type=None, strict_on_new_type=True):
+        """
+
+        :param string_value: string value to deserialize
+        :param new: creates a new object otherwise
+        :param node_type: name of node class
+        :param strict_on_new_type: if set to true, creates a new type even if some fields in CORE_FIELDS are not present
+        :return:
+        """
         new_instance = new if type(new) == bool else False
         o = loads(string_value)
 
-        if type(o) == dict and {"__type", "__object"} == set(o.keys()):
-            return NodeBaseClass.from_str(dumps(o["__object"]), new=new_instance, node_type=o["__type"])
+        type_field = NodeBaseClass.serialize('type')
+        object_field = NodeBaseClass.serialize('object')
+        id_field = NodeBaseClass.serialize('id')
+        data_field = NodeBaseClass.serialize('data')
+        encoding_field = NodeBaseClass.serialize('encoding')
+        key_field = NodeBaseClass.serialize('key')
+        name_field = NodeBaseClass.serialize('name')
+        create_date_field = NodeBaseClass.serialize('create_date')
+        update_date_field = NodeBaseClass.serialize('update_date')
+        ttl_field = NodeBaseClass.serialize('ttl')
 
-        if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) == set(o.keys()):
-            core_id = str(uuid.uuid4()) if new_instance else o["__id"]
+        additional_fields = [NodeBaseClass.serialize(name) for name in getattr(cls, "additional_fields", [])]
+
+        if node_type is not None:
+            if node_type in EntityClassGenerator.class_registry.keys():
+                klass = EntityClassGenerator.class_registry[node_type]
+            else:
+                # TODO: Build a new type here if strict_on_new_type==False
+                if strict_on_new_type == False:
+                    klass = cls
+                else:
+                    klass = cls
+        else:
+            klass = cls
+
+        if type(o) == dict and {type_field, object_field} == set(o.keys()):
+            return NodeBaseClass.from_str(dumps(o[object_field]), new=new_instance, node_type=o[type_field])
+
+        if type(o) == dict and set(klass.get_properties_mapping(node_type=node_type).keys()) == set(o.keys()):
+            id = str(uuid.uuid4()) if new_instance else o[id_field]
 
             if node_type is None or node_type.upper() == NodeBaseClass.__name__.upper():
-                doc = NodeBaseClass(o["__data"], core_id=core_id,
-                                    encoding=o["__encoding"], key=o["__key"], name=o["__name"], )
+                doc = NodeBaseClass(o[data_field], id=id,
+                                    encoding=o[encoding_field], key=o[key_field], name=o[name_field], )
             else:
-                doc = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create(node_type)(
-                    o["__data"],
-                    core_id=core_id,
-                    encoding=o["__encoding"],
-                    key=o["__key"],
-                    name=o["__name"])
+                doc = EntityClassGenerator(
+                    NodeBaseClass,
+                    VersionAwareEntity,
+                    IndexesSupport).create(
+                    node_type,
+                    additional_fields=additional_fields)(
+                    o[data_field],
+                    id=id,
+                    encoding=o[encoding_field],
+                    key=o[key_field],
+                    name=o[name_field])
 
-            if type(o["__data"]) == dict and {"__object", "__type"} == set(o["__data"].keys()):
+            if type(o[data_field]) == dict and {object_field, type_field} == set(o[data_field].keys()):
                 doc.set_data(
-                    NodeBaseClass.from_str(dumps(o["__data"]["__object"]), new=new_instance))
+                    NodeBaseClass.from_str(dumps(o[data_field][object_field]), new=new_instance))
             else:
-                doc.set_data(NodeBaseClass.from_str(dumps(o["__data"])))
+                doc.set_data(NodeBaseClass.from_str(dumps(o[data_field])))
 
-            doc._create_date = int(datetime.utcnow().timestamp()) if new_instance else o["__create_date"]
-            doc._update_date = doc._create_date if new_instance else o["__update_date"]
-            doc._ttl = -1 if new_instance else o["__ttl"]
+            doc._create_date = int(datetime.utcnow().timestamp()) if new_instance else o[create_date_field]
+            doc._update_date = doc._create_date if new_instance else o[update_date_field]
+            doc._ttl = -1 if new_instance else o[ttl_field]
+
+            # setting additional fields
+            for name in additional_fields:
+                setattr(doc, name, o[name])
 
             return doc
 
-        if type(o) == dict and set(NodeBaseClass.properties_mapping.keys()) != set(o.keys()):
+        if type(o) == dict and set(klass.get_properties_mapping(node_type=node_type).keys()) != set(o.keys()):
             return {k: NodeBaseClass.from_str(dumps(v), new=new_instance, ) for k, v in o.items()}
 
         if type(o) == list:
             return [NodeBaseClass.from_str(dumps(sub_o), new=new_instance) for sub_o in o]
+
         return o
 
     def __repr__(self):
@@ -386,4 +469,4 @@ class NodeBaseClass(OperatorsResolver, CoreNodeClass):
                 return None
 
 
-Node = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create()
+Node = EntityClassGenerator(NodeBaseClass, VersionAwareEntity).create()

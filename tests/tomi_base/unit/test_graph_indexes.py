@@ -6,7 +6,7 @@ from tomi_graph.version_aware_entity import VersionAwareEntity
 
 def test_node_valid_indexes():
     classname = "NewNode"
-    indexes = {"index": ["core_id"]}
+    indexes = {"index": ["id"]}
 
     new_node = EntityClassGenerator(NodeBaseClass, VersionAwareEntity, IndexesSupport).create(entity_type=classname,
                                                                                               indexes=indexes)

@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from tomi_graph.entity_class_generator import EntityClassGenerator
 from tomi_graph.graphs.graph import Graph
-from tomi_graph.indexes_support import IndexesSupport
 from tomi_graph.nodes.core.node import CoreNodeClass
 from tomi_graph.operators import GraphOperationDirection, GraphOperation
 from tomi_graph.operators.operator_resolver import OperatorsResolver
@@ -121,8 +120,8 @@ class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
 
     def __call__(self, name=None, rel_type=None, data=None):
         if rel_type is not None and type(rel_type) == str:
-            relationship_class = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity,
-                                                      IndexesSupport).create(entity_type=rel_type)
+            relationship_class = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity, ).create(
+                entity_type=rel_type)
             data = data if data is not None else self._data
             new_relationship = relationship_class(self.node_1, self.node_2, name=self.name, direction=self.direction,
                                                   protection=self.protection, **data)
@@ -216,4 +215,4 @@ class RelationshipBaseClass(OperatorsResolver, CoreRelationshipClass):
                                                                                             other=type(other).__name__))
 
 
-Relationship = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity, IndexesSupport).create()
+Relationship = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity).create()

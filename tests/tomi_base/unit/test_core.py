@@ -4,12 +4,12 @@ from uuid import uuid4
 
 import pytest
 from testfixtures import LogCapture
+from tomi_base.shared.logging import create_logger
+from tomi_base.shared.logging.auto.logging import auto_log
 
 from tomi_graph.nodes.core import DEFAULT_ENCODING
 from tomi_graph.nodes.exceptions import CoreDocumentException, EncodingWarning, CircularReferenceWarning
 from tomi_graph.nodes.node_class import Node, NodeBaseClass
-from tomi_base.shared.logging import create_logger
-from tomi_base.shared.logging.auto.logging import auto_log
 
 globals()["cache"] = {}
 
@@ -26,15 +26,15 @@ def capture_logs():
 def test_init():
     doc = Node()
     assert doc.get_data() is None
-    assert doc.core_id is not None
-    assert type(doc.core_id) == str
+    assert doc.id is not None
+    assert type(doc.id) == str
     assert doc.key is None
     assert doc.encoding == "utf-8"
 
-    core_id = str(uuid4())
+    id = str(uuid4())
     key = "this is a key"
-    doc = Node(core_id=core_id, key=key, data=TEST_VAL)
-    assert doc.core_id == core_id
+    doc = Node(id=id, key=key, data=TEST_VAL)
+    assert doc.id == id
     assert doc.key == key
     assert doc.get_data() == TEST_VAL
 

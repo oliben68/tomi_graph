@@ -1,11 +1,11 @@
 from abc import abstractmethod
 from ujson import dumps
 
-from tomi_graph.base_graph_entity import BaseGraphEntity
+from tomi_graph.base_graph_entity import GraphEntity
 from tomi_graph.entity_category import EntityCategory
 
 
-class CoreNodeClass(BaseGraphEntity):
+class CoreNodeClass(GraphEntity):
     category = EntityCategory.NODE
 
     @property
@@ -15,7 +15,7 @@ class CoreNodeClass(BaseGraphEntity):
 
     @property
     @abstractmethod
-    def core_id(self):
+    def id(self):
         raise NotImplementedError
 
     @property
@@ -124,6 +124,6 @@ class CoreNodeClass(BaseGraphEntity):
         raise NotImplementedError
 
     @abstractmethod
-    def __init__(self, *args, node_type=None, core_id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
+    def __init__(self, *args, node_type=None, id=None, encoding=None, key=None, name=None, data=None, ttl=-1,
                  options=None):
         raise NotImplementedError

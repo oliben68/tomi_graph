@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from tomi_graph.nodes.nodes_dictionary import NodesDictionary
+
 from tomi_graph.graphs.core.graph import BaseGraph
 from tomi_graph.nodes.core.node import CoreNodeClass
 from tomi_graph.operators import GraphOperationDirection, GraphOperation, DefaultValues
@@ -37,20 +39,20 @@ class Graph(OperatorsResolver, BaseGraph):
     @property
     def isolates(self):
         linked_entities = set(
-            [core_id for sublist in [[r.node_1.core_id, r.node_2.core_id] for r in self.relationships] for core_id
+            [id for sublist in [[r.node_1.id, r.node_2.id] for r in self.relationships] for id
              in sublist])
-        return set([e.core_id for e in self.nodes.values()]).difference(linked_entities)
+        return set([e.id for e in self.nodes.values()]).difference(linked_entities)
 
     def __init__(self, namespace_root=None):
         self._id = str(uuid4())
-        self._nodes = {}
+        self._nodes = NodesDictionary()
         self._relationships = []
         self._namespace_map = {}
         self._namespace_root = namespace_root if namespace_root is not None else Graph.NAMESPACE_DELIMITER
 
     def add_node(self, entity, target=None):
         target = self if target is None else target
-        target.nodes[entity.core_id] = entity
+        target.nodes[entity.id] = entity
 
     def add_relationship(self, relationship, target=None):
         target = self if target is None else target
@@ -80,7 +82,7 @@ class Graph(OperatorsResolver, BaseGraph):
 
     def subtract_node(self, node):
         if len(node.graph.relationships) == 0 and len(node.graph.nodes) == 1:
-            del self._nodes[node.core_id]
+            del self._nodes[node.id]
         else:
             self.subtract_graph(node.graph)
         return self
@@ -134,7 +136,7 @@ class Graph(OperatorsResolver, BaseGraph):
         print(search_arguments)
 
     def search_entities(self, **kwargs):
-        # Defaults for search arguments: node_type=None, core_id=None, encoding=None, key=None, name=None, data=None,
+        # Defaults for search arguments: node_type=None, id=None, encoding=None, key=None, name=None, data=None,
         #   ttl=-1
         search_arguments = {k: v for k, v in kwargs.items() if v != DefaultValues.RELATIONSHIP.value[k]}
         print(search_arguments)

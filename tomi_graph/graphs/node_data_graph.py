@@ -5,7 +5,6 @@ from objectpath import Tree
 
 from tomi_graph.entity_class_generator import EntityClassGenerator
 from tomi_graph.graphs.graph import Graph
-from tomi_graph.indexes_support import IndexesSupport
 from tomi_graph.nodes.core.node import CoreNodeClass
 from tomi_graph.relationships.core.protection import Protection
 from tomi_graph.relationships.core.relation_type import RelationType
@@ -22,7 +21,7 @@ class NodeDataGraph(Graph):
             if issubclass(type(d), CoreNodeClass):
                 return {
                     "__type": type(d).__name__,
-                    "__id": d.core_id
+                    "__id": d.id
                 }
             return d
 
@@ -36,7 +35,7 @@ class NodeDataGraph(Graph):
                     d[idx] = to_id(val)
                     swap_with_id(val)
             elif issubclass(type(d), CoreNodeClass):
-                self._nodes[d.core_id] = d
+                self._nodes[d.id] = d
                 d_data = d.get_data()
                 if type(d_data) == tuple:
                     # some ugliness to bypass issues with the immutable nature of tuples
@@ -53,9 +52,8 @@ class NodeDataGraph(Graph):
             if hasattr(tree, "data"):
                 for ref in list(
                         tree.execute('$..*[@.__type and @.__id]')):
-                    rel_type = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity, IndexesSupport).create(
-                        self._rel_type)
-                    self._relationships.append(rel_type(node_1=self._nodes[v.core_id], node_2=self._nodes[ref["__id"]],
+                    rel_type = EntityClassGenerator(RelationshipBaseClass, VersionAwareEntity).create(self._rel_type)
+                    self._relationships.append(rel_type(node_1=self._nodes[v.id], node_2=self._nodes[ref["__id"]],
                                                         rel_type=self._rel_type, protection=Protection.PRESERVE))
 
     def _assemble(self, entity):
@@ -109,7 +107,7 @@ class NodeDataGraph(Graph):
         self._flatten()
 
     def assemble(self, update=None):
-        root_id = self._root_node.core_id
+        root_id = self._root_node.id
         assembled_doc = self._assemble(deepcopy(self._nodes[root_id]))
         if update:
             self._root_node = assembled_doc
@@ -117,7 +115,7 @@ class NodeDataGraph(Graph):
 
     @property
     def root(self):
-        return self._root_node.core_id
+        return self._root_node.id
 
     @property
     def namespace_delimiter(self):
@@ -125,7 +123,7 @@ class NodeDataGraph(Graph):
 
     @property
     def namespace_root(self):
-        return self.root_node.core_id
+        return self.root_node.id
 
     @property
     def dictionary(self):
@@ -137,12 +135,12 @@ class NodeDataGraph(Graph):
             self._namespace_map = {self.root: self.root}
 
             def calculate_namespace(parent_namespace):
-                core_id = parent_namespace.split(self.namespace_delimiter)[-1]
-                for rel in [r for r in self._relationships if r.node_1.core_id == core_id]:
+                id = parent_namespace.split(self.namespace_delimiter)[-1]
+                for rel in [r for r in self._relationships if r.node_1.id == id]:
                     child_namespace = "{base}{delimiter}{entity_id}".format(base=parent_namespace,
-                                                                            entity_id=rel.node_2.core_id,
+                                                                            entity_id=rel.node_2.id,
                                                                             delimiter=self.namespace_delimiter)
-                    self._namespace_map[rel.node_2.core_id] = child_namespace
+                    self._namespace_map[rel.node_2.id] = child_namespace
                     calculate_namespace(child_namespace)
 
             calculate_namespace(self.root)

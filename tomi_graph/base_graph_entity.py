@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from tomi_graph.entity_category import EntityCategory
 
 
-class BaseGraphEntity(ABC):
+class GraphEntity(ABC):
     category = EntityCategory.CORE
 
     @abstractmethod
