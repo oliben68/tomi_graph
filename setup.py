@@ -9,7 +9,7 @@ from setuptools.command.test import test as test_command
 
 def _load_setup_info():
     with open(os.path.join(os.getcwd(), ".setup_info")) as pkg_info:
-        return yaml.load(pkg_info)["package"]
+        return yaml.load(pkg_info, Loader=yaml.FullLoader)["package"]
 
 
 SETUP_INFO = _load_setup_info()
